@@ -69,9 +69,9 @@ export class PlayerController {
 
   /**
    * @param {number} dt - seconds since last frame
-   * @param {THREE.Camera} camera - used to move relative to view direction
+   * @param {number} yaw - the camera rig's current horizontal orbit angle (radians)
    */
-  update(dt, camera) {
+  update(dt, yaw) {
     let inputX = 0; // right (+) / left (-)
     let inputZ = 0; // forward (+) / back (-)
 
@@ -91,10 +91,13 @@ export class PlayerController {
     const moveSpeed = this.shiftHeld ? RUN_SPEED : MOVE_SPEED;
 
     if (speed > 0.001) {
-      // movement relative to camera yaw, so "forward" always means "away from camera"
-      camera.getWorldDirection(this._camForward);
-      this._camForward.y = 0;
-      this._camForward.normalize();
+      // Movement direction derived directly from the camera rig's yaw angle
+      // (sin/cos of a plain number, always well-defined) rather than reading
+      // camera.getWorldDirection() and flattening out its vertical component —
+      // that flattening step could produce a zero-length vector (then NaN
+      // after normalize()) whenever the camera's pitch was steep, silently
+      // breaking movement and turning while the walk animation kept playing.
+      this._camForward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
       this._camRight.crossVectors(this._camForward, THREE.Object3D.DEFAULT_UP).negate();
 
       this._moveDir.set(0, 0, 0)

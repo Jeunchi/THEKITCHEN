@@ -185,7 +185,33 @@ function onModelLoaded(gltf) {
   // `model` guarantees the bones are reachable no matter how the rig is parented.
   const mixer = new THREE.AnimationMixer(model);
   const actions = {};
-  gltf.animations.forEach((clip) => {
+
+  // If a clip has keyframes on the Bear object's OWN position/rotation/scale
+  // (as opposed to only its bones) — e.g. because the walk cycle was authored
+  // with the whole object moving during preview in Blender — the mixer would
+  // silently overwrite our manual movement/turning every frame, since
+  // mixer.update() runs after PlayerController sets the transform each frame.
+  // Strip those specific tracks here so only bone animation survives; this is
+  // a no-op if no such tracks exist.
+  let strippedRootMotion = false;
+  const preparedClips = gltf.animations.map((clip) => {
+    if (!chef) return clip;
+    const prefix = `${chef.name}.`;
+    const keptTracks = clip.tracks.filter((t) => !t.name.startsWith(prefix));
+    if (keptTracks.length === clip.tracks.length) return clip;
+    strippedRootMotion = true;
+    const cloned = clip.clone();
+    cloned.tracks = keptTracks;
+    return cloned;
+  });
+  if (strippedRootMotion) {
+    console.log(
+      `Removed root-motion keyframes targeting "${chef.name}" from one or more clips — ` +
+      `these would have fought manual movement each frame. Bone animation is untouched.`
+    );
+  }
+
+  preparedClips.forEach((clip) => {
     actions[clip.name.toLowerCase()] = mixer.clipAction(clip);
   });
   if (gltf.animations.length === 0) {
@@ -338,7 +364,7 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.1);
 
   if (playerController) {
-    playerController.update(dt, camera);
+    playerController.update(dt, yaw);
   }
   updateCamera();
   if (interactionManager) {
