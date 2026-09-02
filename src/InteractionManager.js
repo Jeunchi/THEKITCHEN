@@ -1,0 +1,184 @@
+import * as THREE from 'three';
+import { interactiveContent } from './content.js';
+
+const DEFAULT_RADIUS = 2.2;
+const HIGHLIGHT_COLOR = new THREE.Color(0xC1440E); // tomato accent, matches the UI panel
+const HIGHLIGHT_INTENSITY = 0.55;
+
+/**
+ * Finds every object belonging to a logical "key" name.
+ * Handles two cases produced by Blender exports:
+ *   1. A single object renamed exactly to the key (e.g. "FRIDGE").
+ *   2. A group of objects renamed "Key-01", "Key-02", ... (e.g. "Counter-01",
+ *      "Counter-02" for the key "Counter") — common when you didn't join
+ *      multiple meshes into one object in Blender.
+ */
+function findGroupObjects(scene, key) {
+  const results = [];
+  const exact = scene.getObjectByName(key);
+  if (exact) results.push(exact);
+
+  const prefix = `${key}-`;
+  scene.traverse((obj) => {
+    if (obj.name.startsWith(prefix) && !results.includes(obj)) {
+      results.push(obj);
+    }
+  });
+
+  return results;
+}
+
+/**
+ * Clones the materials on every mesh under `objects` so we can safely tweak
+ * emissive color for highlighting without affecting any other object in the
+ * scene that might happen to share the same material.
+ * Returns a flat list of { material, originalEmissive, originalIntensity }.
+ */
+function collectHighlightEntries(objects) {
+  const entries = [];
+  for (const root of objects) {
+    root.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      const isArray = Array.isArray(child.material);
+      const mats = isArray ? child.material : [child.material];
+      const cloned = mats.map((mat) => {
+        if (!('emissive' in mat)) return mat; // e.g. a Basic material — skip highlighting it
+        const clone = mat.clone();
+        entries.push({
+          material: clone,
+          originalEmissive: clone.emissive.clone(),
+          originalIntensity: clone.emissiveIntensity ?? 1,
+        });
+        return clone;
+      });
+      child.material = isArray ? cloned : cloned[0];
+    });
+  }
+  return entries;
+}
+
+export class InteractionManager {
+  /**
+   * @param {THREE.Scene} scene - the loaded kitchen scene
+   * @param {THREE.Object3D} player - the object whose position we test proximity against
+   */
+  constructor(scene, player) {
+    this.player = player;
+    this.targets = []; // { objects, name, radius, data, highlightEntries }
+    this._tmpVec = new THREE.Vector3();
+
+    for (const name of Object.keys(interactiveContent)) {
+      const objects = findGroupObjects(scene, name);
+      if (objects.length === 0) {
+        console.warn(
+          `[InteractionManager] No object(s) found for "${name}" (looked for an exact ` +
+          `match and any object named "${name}-01", "${name}-02", ...). Check the exact ` +
+          `name(s) in your exported .glb.`
+        );
+        continue;
+      }
+      this.targets.push({
+        objects,
+        name,
+        radius: interactiveContent[name].radius ?? DEFAULT_RADIUS,
+        data: interactiveContent[name],
+        highlightEntries: collectHighlightEntries(objects),
+      });
+    }
+
+    this.nearest = null; // currently-in-range target, or null
+
+    // DOM refs
+    this.promptEl = document.getElementById('prompt');
+    this.promptTextEl = document.getElementById('prompt-text');
+    this.panelEl = document.getElementById('panel');
+    this.panelEyebrow = document.getElementById('panel-eyebrow');
+    this.panelTitle = document.getElementById('panel-title');
+    this.panelBody = document.getElementById('panel-body');
+    this.panelCloseBtn = document.getElementById('panel-close');
+
+    this.isPanelOpen = false;
+
+    this.panelCloseBtn.addEventListener('click', () => this.closePanel());
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape') this.closePanel();
+      if (e.code === 'KeyE') this.tryOpenNearest();
+    });
+
+    // Mobile touch "Interact" button — also gated by proximity, never a raw click/tap on the object
+    const touchBtn = document.getElementById('touch-interact');
+    touchBtn.addEventListener('click', () => this.tryOpenNearest());
+  }
+
+  setCamera(camera) {
+    this._camera = camera; // kept for potential future use (e.g. screen-space prompt placement)
+  }
+
+  _setHighlight(target, active) {
+    if (!target) return;
+    for (const entry of target.highlightEntries) {
+      if (active) {
+        entry.material.emissive.set(HIGHLIGHT_COLOR);
+        entry.material.emissiveIntensity = HIGHLIGHT_INTENSITY;
+      } else {
+        entry.material.emissive.copy(entry.originalEmissive);
+        entry.material.emissiveIntensity = entry.originalIntensity;
+      }
+    }
+  }
+
+  /** Call once per frame from the render loop. */
+  update() {
+    if (this.isPanelOpen) return;
+
+    let closest = null;
+    let closestDist = Infinity;
+
+    for (const t of this.targets) {
+      let minDist = Infinity;
+      for (const obj of t.objects) {
+        obj.getWorldPosition(this._tmpVec);
+        const d = this._tmpVec.distanceTo(this.player.position);
+        if (d < minDist) minDist = d;
+      }
+      if (minDist <= t.radius && minDist < closestDist) {
+        closest = t;
+        closestDist = minDist;
+      }
+    }
+
+    if (closest !== this.nearest) {
+      this._setHighlight(this.nearest, false);
+      this._setHighlight(closest, true);
+      this.nearest = closest;
+    }
+
+    if (closest) {
+      this.promptTextEl.textContent = `Press E to view ${closest.data.eyebrow}`;
+      this.promptEl.classList.remove('hidden');
+    } else {
+      this.promptEl.classList.add('hidden');
+    }
+  }
+
+  tryOpenNearest() {
+    if (this.isPanelOpen || !this.nearest) return;
+    this.openPanel(this.nearest);
+  }
+
+  openPanel(target) {
+    this.isPanelOpen = true;
+    this._setHighlight(target, false);
+    this.promptEl.classList.add('hidden');
+    this.panelEyebrow.textContent = target.data.eyebrow;
+    this.panelTitle.textContent = target.data.title;
+    this.panelBody.innerHTML = target.data.html;
+    this.panelEl.classList.remove('hidden');
+  }
+
+  closePanel() {
+    this.isPanelOpen = false;
+    this.panelEl.classList.add('hidden');
+    this.nearest = null; // forces a fresh proximity check (and re-highlight) next frame
+  }
+}

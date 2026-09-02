@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>Chef's Kitchen — Portfolio</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene"></canvas>
+
+    <!-- Loading screen -->
+    <div id="loader">
+      <div class="loader-inner">
+        <div class="loader-title">Chef's Kitchen</div>
+        <div class="loader-bar"><div id="loader-fill"></div></div>
+        <div id="loader-pct">0%</div>
+      </div>
+    </div>
+
+    <!-- HUD: crosshair-free proximity prompt -->
+    <div id="prompt" class="hidden">
+      <span id="prompt-text">Press E to interact</span>
+    </div>
+
+    <!-- Info panel (About / Projects / Education / Contact) -->
+    <div id="panel" class="hidden">
+      <div id="panel-card">
+        <button id="panel-close" aria-label="Close">&times;</button>
+        <div id="panel-eyebrow"></div>
+        <h2 id="panel-title"></h2>
+        <div id="panel-body"></div>
+      </div>
+    </div>
+
+    <!-- Mobile touch controls -->
+    <div id="touch-controls" class="hidden">
+      <div id="joystick-base">
+        <div id="joystick-knob"></div>
+      </div>
+      <button id="touch-interact">Interact</button>
+    </div>
+
+    <div id="hint">WASD to move · Shift+WASD or mouse drag to look/zoom · E to interact</div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
