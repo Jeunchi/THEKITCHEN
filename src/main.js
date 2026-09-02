@@ -11,6 +11,34 @@ import { TouchJoystick } from './TouchJoystick.js';
 const MODEL_URL = '/models/kitchen.glb';
 const PLAYER_ROOT_NAME = 'CHEF'; // must match the collection/object name in Blender
 
+/**
+ * Finds an object by name, tolerating case differences and stray whitespace
+ * (both common after a Blender rename + export round-trip). Tries an exact
+ * match first, then falls back to a trimmed/lowercased comparison.
+ */
+function findNamedObject(root, name) {
+  const exact = root.getObjectByName(name);
+  if (exact) return exact;
+
+  const target = name.trim().toLowerCase();
+  let found = null;
+  root.traverse((obj) => {
+    if (!found && obj.name && obj.name.trim().toLowerCase() === target) {
+      found = obj;
+    }
+  });
+  return found;
+}
+
+/** Logs every object name in the loaded model — check this if something isn't found. */
+function debugLogSceneNames(model) {
+  console.groupCollapsed('[debug] Object names in loaded model (click to expand)');
+  model.traverse((obj) => {
+    console.log(`${obj.type}: "${obj.name || '(unnamed)'}"`);
+  });
+  console.groupEnd();
+}
+
 // ---------------------------------------------------------------------------
 // Renderer / Scene / Camera
 // ---------------------------------------------------------------------------
@@ -88,14 +116,23 @@ function onModelLoaded(gltf) {
     }
   });
   scene.add(model);
+  debugLogSceneNames(model);
 
   // --- find the bear ---
-  const chef = model.getObjectByName(PLAYER_ROOT_NAME);
-  if (!chef) {
+  const chef = findNamedObject(model, PLAYER_ROOT_NAME);
+  let playerRoot;
+  if (chef) {
+    playerRoot = chef;
+  } else {
     console.error(
-      `Could not find an object named "${PLAYER_ROOT_NAME}" in the loaded model. ` +
-      `Check the exact name in your Blender outliner and update PLAYER_ROOT_NAME in main.js.`
+      `Could not find an object named "${PLAYER_ROOT_NAME}" in the loaded model (see the ` +
+      `"[debug] Object names" log above for what's actually there). Movement is DISABLED ` +
+      `until this is fixed — using a detached placeholder instead of the whole scene on ` +
+      `purpose, so a naming mismatch can't accidentally drag your entire kitchen around.`
     );
+    playerRoot = new THREE.Object3D();
+    playerRoot.name = 'MISSING_CHEF_PLACEHOLDER';
+    scene.add(playerRoot);
   }
 
   // --- animations ---
@@ -117,7 +154,7 @@ function onModelLoaded(gltf) {
   // Walkable bounds are computed from the actual "Floor" object's bounding box
   // (not hardcoded) so they're always correct regardless of your room's real
   // size or where it sits in world space.
-  const floor = model.getObjectByName('Floor');
+  const floor = findNamedObject(model, 'Floor');
   let bounds;
   if (floor) {
     const box = new THREE.Box3().setFromObject(floor);
@@ -142,9 +179,14 @@ function onModelLoaded(gltf) {
     bounds = { minX: -8, maxX: 8, minZ: -5, maxZ: 5 };
   }
 
-  playerController = new PlayerController(chef ?? model, mixer, actions, bounds);
-  interactionManager = new InteractionManager(model, chef ?? model);
+  playerController = new PlayerController(playerRoot, mixer, actions, bounds);
+  interactionManager = new InteractionManager(model, playerRoot);
   interactionManager.setCamera(camera);
+
+  // Snap straight to the intended framing instead of slowly lerping in from
+  // the hardcoded startup position — this is the very first thing a visitor
+  // sees, so it should be right on the first rendered frame.
+  snapCameraTo(playerRoot);
 
   const joystickVec = new THREE.Vector2();
   new TouchJoystick(joystickVec);
@@ -158,7 +200,7 @@ function onModelLoaded(gltf) {
 // Simple third-person camera rig: orbit with mouse/touch drag, follow the bear
 // ---------------------------------------------------------------------------
 let yaw = 0;
-let pitch = 0.35;
+let pitch = 0.5; // higher default angle — the first-load view should read as an overview, not eye-level
 let isDragging = false;
 let lastX = 0;
 let lastY = 0;
@@ -210,6 +252,17 @@ function updateCameraKeys(dt) {
   if (cameraKeys.has('KeyD')) yaw -= CAM_ORBIT_SPEED * dt;
   if (cameraKeys.has('KeyW')) camDistance = Math.max(CAM_MIN_DIST, camDistance - CAM_ZOOM_SPEED * dt);
   if (cameraKeys.has('KeyS')) camDistance = Math.min(CAM_MAX_DIST, camDistance + CAM_ZOOM_SPEED * dt);
+}
+
+function snapCameraTo(target) {
+  const horizDist = camDistance * Math.cos(pitch);
+  const height = camDistance * Math.sin(pitch);
+  camera.position.set(
+    target.position.x + Math.sin(yaw) * horizDist,
+    target.position.y + height,
+    target.position.z + Math.cos(yaw) * horizDist
+  );
+  camera.lookAt(target.position.x, target.position.y + 1, target.position.z);
 }
 
 function updateCamera(target) {
