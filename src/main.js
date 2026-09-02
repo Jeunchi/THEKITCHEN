@@ -118,7 +118,47 @@ function onModelLoaded(gltf) {
     }
   });
   scene.add(model);
+  // Force an immediate world-matrix update. Without this, Box3().setFromObject()
+  // below could read stale (pre-scene-graph) transforms, since Three.js normally
+  // only refreshes world matrices during a render pass — and this all runs BEFORE
+  // the first render. Skipping this was likely why bounds/camera math was off.
+  model.updateMatrixWorld(true);
   debugLogSceneNames(model);
+
+  // --- use your Blender Camera and Sun, if they were exported ---
+  // Note: Blender's glTF exporter only includes lights if "Punctual Lights"
+  // is checked under the export panel's Lighting section (off by default).
+  let importedLight = null;
+  let importedCamera = null;
+  model.traverse((obj) => {
+    if (obj.isLight && !importedLight) importedLight = obj;
+    if (obj.isCamera && !importedCamera) importedCamera = obj;
+  });
+
+  if (importedLight) {
+    console.log(`Using imported light "${importedLight.name}" (${importedLight.type}) from Blender.`);
+    importedLight.castShadow = true;
+    if (importedLight.shadow?.camera) {
+      importedLight.shadow.mapSize.set(2048, 2048);
+      importedLight.shadow.camera.left = -12;
+      importedLight.shadow.camera.right = 12;
+      importedLight.shadow.camera.top = 12;
+      importedLight.shadow.camera.bottom = -12;
+      importedLight.shadow.camera.updateProjectionMatrix();
+    }
+    hemi.intensity = 0.25; // dim the fallback fill light rather than remove it — a little ambient fill still helps
+    key.visible = false;   // the imported Sun replaces this built-in stand-in
+  } else {
+    console.warn(
+      'No light found in the exported model — using the built-in fallback lights instead. ' +
+      'If you added a Sun in Blender, make sure "Punctual Lights" is checked in the glTF ' +
+      'export panel (under Lighting) and re-export.'
+    );
+  }
+
+  if (importedCamera) {
+    console.log(`Found imported camera "${importedCamera.name}" — using its framing as the starting view.`);
+  }
 
   // --- find the bear ---
   const chef = findNamedObject(model, PLAYER_ROOT_NAME);
@@ -193,6 +233,23 @@ function onModelLoaded(gltf) {
   interactionManager = new InteractionManager(model, playerRoot);
   interactionManager.setCamera(camera);
 
+  if (importedCamera) {
+    camera.fov = importedCamera.fov ?? camera.fov;
+    camera.updateProjectionMatrix();
+
+    const camWorldPos = new THREE.Vector3();
+    importedCamera.getWorldPosition(camWorldPos);
+    const offset = new THREE.Vector3().subVectors(camWorldPos, cameraTarget);
+    const dist = offset.length();
+    if (dist > 0.01) {
+      camDistance = THREE.MathUtils.clamp(dist, 3, 24);
+      yaw = Math.atan2(offset.x, offset.z);
+      pitch = THREE.MathUtils.clamp(Math.asin(THREE.MathUtils.clamp(offset.y / dist, -1, 1)), 0.05, 1.4);
+    }
+  }
+
+  console.log('Computed walkable bounds:', bounds, '| Bear spawn position:', playerRoot.position.clone());
+
   // Snap straight to the intended framing instead of slowly lerping in from
   // the hardcoded startup position — this is the very first thing a visitor
   // sees, so it should be right on the first rendered frame.
@@ -208,10 +265,9 @@ function onModelLoaded(gltf) {
 
 // ---------------------------------------------------------------------------
 // Camera rig — orbits a FIXED point in the room (set once, from the floor's
-// center, when the model loads). This is intentionally NOT the bear's
-// position: the camera never re-centers on the bear automatically. Plain
-// WASD only ever moves the bear. The camera only ever moves via Shift+WASD
-// or a mouse/touch drag — nothing else touches it.
+// center, or the imported Blender camera's framing, when the model loads).
+// The camera never re-centers on the bear automatically. It only ever moves
+// via mouse/touch drag (orbit) or the scroll wheel (zoom).
 // ---------------------------------------------------------------------------
 const cameraTarget = new THREE.Vector3(0, 0, 0);
 let yaw = 0;
@@ -219,7 +275,9 @@ let pitch = 0.5; // higher default angle — the first-load view should read as 
 let isDragging = false;
 let lastX = 0;
 let lastY = 0;
-let camDistance = 6; // overwritten once the room's real size is known (see onModelLoaded)
+let camDistance = 6; // overwritten once the room's real size (or imported camera) is known
+const CAM_MIN_DIST = 3;
+const CAM_MAX_DIST = 24;
 
 function onDragStart(x, y) { isDragging = true; lastX = x; lastY = y; }
 function onDragMove(x, y) {
@@ -240,34 +298,12 @@ canvas.addEventListener('touchstart', (e) => {
 window.addEventListener('touchmove', (e) => onDragMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
 window.addEventListener('touchend', onDragEnd);
 
-// --- Shift+WASD: keyboard camera control, fully separate from bear movement ---
-// Plain WASD always moves the bear (see PlayerController). Holding Shift flips
-// W/A/S/D over to camera orbit/zoom instead, and PlayerController ignores
-// movement keys entirely while Shift is held (see setShiftHeld below), so the
-// two never fight over the same keys.
-let shiftHeld = false;
-const cameraKeys = new Set();
-const CAMERA_KEY_CODES = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
-const CAM_ORBIT_SPEED = 1.2;  // radians/second
-const CAM_ZOOM_SPEED = 6;     // meters/second
-const CAM_MIN_DIST = 3;
-const CAM_MAX_DIST = 20;
-
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Shift') shiftHeld = true;
-  if (shiftHeld && CAMERA_KEY_CODES.includes(e.code)) cameraKeys.add(e.code);
-});
-window.addEventListener('keyup', (e) => {
-  if (e.key === 'Shift') shiftHeld = false;
-  cameraKeys.delete(e.code);
-});
-
-function updateCameraKeys(dt) {
-  if (cameraKeys.has('KeyA')) yaw += CAM_ORBIT_SPEED * dt;
-  if (cameraKeys.has('KeyD')) yaw -= CAM_ORBIT_SPEED * dt;
-  if (cameraKeys.has('KeyW')) camDistance = Math.max(CAM_MIN_DIST, camDistance - CAM_ZOOM_SPEED * dt);
-  if (cameraKeys.has('KeyS')) camDistance = Math.min(CAM_MAX_DIST, camDistance + CAM_ZOOM_SPEED * dt);
-}
+// Scroll wheel zoom — the only other camera control, alongside drag-to-orbit.
+// (Shift is reserved for running; see PlayerController.)
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  camDistance = THREE.MathUtils.clamp(camDistance + e.deltaY * 0.01, CAM_MIN_DIST, CAM_MAX_DIST);
+}, { passive: false });
 
 function snapCameraTo() {
   const horizDist = camDistance * Math.cos(pitch);
@@ -288,7 +324,7 @@ function updateCamera() {
     cameraTarget.y + height,
     cameraTarget.z + Math.cos(yaw) * horizDist
   );
-  // Lerp here is just to smooth Shift+WASD/drag input, NOT to chase the bear —
+  // Lerp here just smooths drag/scroll input, NOT chasing the bear —
   // cameraTarget itself never changes on its own.
   camera.position.lerp(desired, 0.15);
   camera.lookAt(cameraTarget.x, cameraTarget.y + 1, cameraTarget.z);
@@ -301,10 +337,7 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1);
 
-  updateCameraKeys(dt);
-
   if (playerController) {
-    playerController.setShiftHeld(shiftHeld);
     playerController.update(dt, camera);
   }
   updateCamera();
