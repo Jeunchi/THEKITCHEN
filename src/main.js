@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { PlayerController } from './PlayerController.js';
 import { InteractionManager } from './InteractionManager.js';
 import { TouchJoystick } from './TouchJoystick.js';
@@ -86,6 +87,7 @@ const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
+gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
 let playerController = null;
 let interactionManager = null;
@@ -153,7 +155,9 @@ function onModelLoaded(gltf) {
 
   // Walkable bounds are computed from the actual "Floor" object's bounding box
   // (not hardcoded) so they're always correct regardless of your room's real
-  // size or where it sits in world space.
+  // size or where it sits in world space. The camera's fixed orbit target is
+  // set to the room's center here too — see the camera rig section below for
+  // why this only happens once, on load, rather than every frame.
   const floor = findNamedObject(model, 'Floor');
   let bounds;
   if (floor) {
@@ -166,17 +170,23 @@ function onModelLoaded(gltf) {
       maxZ: box.max.z - margin,
     };
 
-    // Size the starting camera distance to the room instead of a fixed guess.
     const size = new THREE.Vector3();
     box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    cameraTarget.copy(center);
+
+    // Size the starting camera distance to the room instead of a fixed guess.
     const diagonal = Math.hypot(size.x, size.z);
-    camDistance = THREE.MathUtils.clamp(diagonal * 0.35, 6, 16);
+    camDistance = THREE.MathUtils.clamp(diagonal * 0.45, 8, 20);
   } else {
     console.warn(
-      'No object named "Floor" found — falling back to a default walkable area. ' +
-      'The bear may be able to walk through walls. Check your export for a "Floor" object.'
+      'No object named "Floor" found — falling back to a default walkable area and ' +
+      'camera target. The bear may be able to walk through walls, and the camera may ' +
+      'not be centered on the room. Check your export for a "Floor" object.'
     );
     bounds = { minX: -8, maxX: 8, minZ: -5, maxZ: 5 };
+    cameraTarget.copy(playerRoot.position);
   }
 
   playerController = new PlayerController(playerRoot, mixer, actions, bounds);
@@ -186,7 +196,7 @@ function onModelLoaded(gltf) {
   // Snap straight to the intended framing instead of slowly lerping in from
   // the hardcoded startup position — this is the very first thing a visitor
   // sees, so it should be right on the first rendered frame.
-  snapCameraTo(playerRoot);
+  snapCameraTo();
 
   const joystickVec = new THREE.Vector2();
   new TouchJoystick(joystickVec);
@@ -197,8 +207,13 @@ function onModelLoaded(gltf) {
 }
 
 // ---------------------------------------------------------------------------
-// Simple third-person camera rig: orbit with mouse/touch drag, follow the bear
+// Camera rig — orbits a FIXED point in the room (set once, from the floor's
+// center, when the model loads). This is intentionally NOT the bear's
+// position: the camera never re-centers on the bear automatically. Plain
+// WASD only ever moves the bear. The camera only ever moves via Shift+WASD
+// or a mouse/touch drag — nothing else touches it.
 // ---------------------------------------------------------------------------
+const cameraTarget = new THREE.Vector3(0, 0, 0);
 let yaw = 0;
 let pitch = 0.5; // higher default angle — the first-load view should read as an overview, not eye-level
 let isDragging = false;
@@ -254,29 +269,29 @@ function updateCameraKeys(dt) {
   if (cameraKeys.has('KeyS')) camDistance = Math.min(CAM_MAX_DIST, camDistance + CAM_ZOOM_SPEED * dt);
 }
 
-function snapCameraTo(target) {
+function snapCameraTo() {
   const horizDist = camDistance * Math.cos(pitch);
   const height = camDistance * Math.sin(pitch);
   camera.position.set(
-    target.position.x + Math.sin(yaw) * horizDist,
-    target.position.y + height,
-    target.position.z + Math.cos(yaw) * horizDist
+    cameraTarget.x + Math.sin(yaw) * horizDist,
+    cameraTarget.y + height,
+    cameraTarget.z + Math.cos(yaw) * horizDist
   );
-  camera.lookAt(target.position.x, target.position.y + 1, target.position.z);
+  camera.lookAt(cameraTarget.x, cameraTarget.y + 1, cameraTarget.z);
 }
 
-function updateCamera(target) {
+function updateCamera() {
   const horizDist = camDistance * Math.cos(pitch);
   const height = camDistance * Math.sin(pitch);
-  const offset = new THREE.Vector3(
-    Math.sin(yaw) * horizDist,
-    height,
-    Math.cos(yaw) * horizDist
+  const desired = new THREE.Vector3(
+    cameraTarget.x + Math.sin(yaw) * horizDist,
+    cameraTarget.y + height,
+    cameraTarget.z + Math.cos(yaw) * horizDist
   );
-  const desired = new THREE.Vector3().copy(target.position).add(offset);
-  camera.position.lerp(desired, 0.12);
-  const lookAt = new THREE.Vector3().copy(target.position).add(new THREE.Vector3(0, 1, 0));
-  camera.lookAt(lookAt);
+  // Lerp here is just to smooth Shift+WASD/drag input, NOT to chase the bear —
+  // cameraTarget itself never changes on its own.
+  camera.position.lerp(desired, 0.15);
+  camera.lookAt(cameraTarget.x, cameraTarget.y + 1, cameraTarget.z);
 }
 
 // ---------------------------------------------------------------------------
@@ -291,8 +306,8 @@ function animate() {
   if (playerController) {
     playerController.setShiftHeld(shiftHeld);
     playerController.update(dt, camera);
-    updateCamera(playerController.root);
   }
+  updateCamera();
   if (interactionManager) {
     interactionManager.update();
   }
