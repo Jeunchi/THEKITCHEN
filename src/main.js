@@ -9,7 +9,7 @@ import { TouchJoystick } from './TouchJoystick.js';
 // CONFIG — change this to match your exported filename
 // ---------------------------------------------------------------------------
 const MODEL_URL = '/models/kitchen.glb';
-const PLAYER_ROOT_NAME = 'CHEF'; // must match the collection/object name in Blender
+const PLAYER_ROOT_NAME = 'Bear'; // must match the object name in Blender — you renamed it from CHEF to Bear
 
 /**
  * Finds an object by name, tolerating case differences and stray whitespace

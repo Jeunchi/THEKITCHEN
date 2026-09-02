@@ -72,7 +72,7 @@ export const interactiveContent = {
 // available to wire up next (Pan, Pot, Ham, Chicken drumstick, individual
 // project write-ups, etc.)
 export const availableObjectNames = [
-  'CHEF', 'GAS RANGE', 'FRIDGE', 'Counter', 'Cabinet', 'Faucet', 'Countertop',
+  'Bear', 'GAS RANGE', 'FRIDGE', 'Counter', 'Cabinet', 'Faucet', 'Countertop',
   'Trash', 'Strawberry', 'Mango', 'Pan', 'Pot', 'Chicken drumstick', 'Ham',
   'Plate', 'Fork', 'Spoon', 'Exhaust', 'Kitchen',
 ];
