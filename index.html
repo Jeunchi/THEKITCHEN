@@ -10,6 +10,10 @@
   <div id="app">
     <canvas id="scene"></canvas>
 
+    <div id="debug-warnings" class="hidden"></div>
+    <div id="debug-status" class="hidden"></div>
+    <div id="debug-live" class="hidden"></div>
+
     <!-- Loading screen -->
     <div id="loader">
       <div class="loader-inner">
@@ -42,7 +46,7 @@
       <button id="touch-interact">Interact</button>
     </div>
 
-    <div id="hint">WASD to move · Shift+WASD or mouse drag to look/zoom · E to interact</div>
+    <div id="hint">WASD to move (hold Shift to run) · Drag to look · Scroll to zoom · E to interact</div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

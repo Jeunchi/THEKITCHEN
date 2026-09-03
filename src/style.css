@@ -32,7 +32,60 @@ html, body {
   outline: none;
 }
 
-/* ---------- Loader ---------- */
+/* ---------------------------------------------------------------------- */
+/* Debug warnings — visible on-screen so problems don't require DevTools   */
+/* ---------------------------------------------------------------------- */
+#debug-warnings {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: #7a1a10;
+  color: #fff2df;
+  font-family: 'Work Sans', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 0.5rem 1rem;
+}
+#debug-warnings.hidden { display: none; }
+#debug-warnings > div { padding: 0.1rem 0; }
+
+#debug-status {
+  position: absolute;
+  bottom: 3.2rem;
+  right: 1rem;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.55);
+  color: #cfead1;
+  font-family: monospace;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  max-width: 320px;
+  white-space: pre-line;
+}
+#debug-status.hidden { display: none; }
+
+#debug-live {
+  position: absolute;
+  bottom: 10.5rem;
+  right: 1rem;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffd7a8;
+  font-family: monospace;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  white-space: pre;
+}
+#debug-live.hidden { display: none; }
+
+/* ---------------------------------------------------------------------- */
+/* Loader */
 #loader {
   position: absolute;
   inset: 0;

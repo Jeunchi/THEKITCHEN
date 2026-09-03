@@ -40,6 +40,20 @@ function debugLogSceneNames(model) {
   console.groupEnd();
 }
 
+/**
+ * Shows a warning both in the console AND as a visible on-screen banner, so
+ * critical setup problems (missing objects, etc.) don't require opening
+ * DevTools to notice.
+ */
+const debugWarningsEl = document.getElementById('debug-warnings');
+function showDebugWarning(message) {
+  console.error(message);
+  debugWarningsEl.classList.remove('hidden');
+  const line = document.createElement('div');
+  line.textContent = `⚠ ${message}`;
+  debugWarningsEl.appendChild(line);
+}
+
 // ---------------------------------------------------------------------------
 // Renderer / Scene / Camera
 // ---------------------------------------------------------------------------
@@ -160,17 +174,44 @@ function onModelLoaded(gltf) {
     console.log(`Found imported camera "${importedCamera.name}" — using its framing as the starting view.`);
   }
 
-  // --- find the bear ---
+  // --- find the bear, and wrap it (mesh + armature) so we move a plain,
+  // ordinary Object3D instead of the SkinnedMesh directly ---
+  // Some skinned rigs compute their final vertex positions almost entirely
+  // from the BONES' own world transforms, largely ignoring the mesh node's
+  // own transform. If that's the case here, moving the mesh directly would
+  // do nothing visually (even though the position numbers change correctly)
+  // — which matches exactly what was reported. Wrapping both the mesh and
+  // its armature under one new parent and moving THAT instead works
+  // regardless of which behavior this rig uses, because it's the parent
+  // transform that both the mesh and the bones ultimately inherit from.
   const chef = findNamedObject(model, PLAYER_ROOT_NAME);
   let playerRoot;
   if (chef) {
-    playerRoot = chef;
+    playerRoot = new THREE.Object3D();
+    playerRoot.name = 'BearMovementRig';
+    scene.add(playerRoot);
+    playerRoot.attach(chef); // reparents while preserving current world position
+
+    // Find the armature's root node by climbing up from any bone in the
+    // skeleton, rather than assuming a specific object name — this works
+    // regardless of what the armature object is actually called.
+    let armatureRoot = null;
+    if (chef.isSkinnedMesh && chef.skeleton?.bones?.length) {
+      let node = chef.skeleton.bones[0];
+      while (node.parent && node.parent.isBone) node = node.parent;
+      armatureRoot = node.parent;
+    }
+    if (armatureRoot && armatureRoot !== chef && armatureRoot !== playerRoot) {
+      playerRoot.attach(armatureRoot);
+      console.log(`Wrapped "${chef.name}" and its armature ("${armatureRoot.name}") under a single movement rig.`);
+    } else {
+      console.log(`Wrapped "${chef.name}" under a movement rig (no separate armature root found to attach).`);
+    }
   } else {
-    console.error(
-      `Could not find an object named "${PLAYER_ROOT_NAME}" in the loaded model (see the ` +
-      `"[debug] Object names" log above for what's actually there). Movement is DISABLED ` +
-      `until this is fixed — using a detached placeholder instead of the whole scene on ` +
-      `purpose, so a naming mismatch can't accidentally drag your entire kitchen around.`
+    showDebugWarning(
+      `Could not find an object named "${PLAYER_ROOT_NAME}" — movement is disabled. ` +
+      `Open DevTools Console and expand "[debug] Object names" to see what's actually ` +
+      `in the file, and make sure you re-exported kitchen.glb after any rename.`
     );
     playerRoot = new THREE.Object3D();
     playerRoot.name = 'MISSING_CHEF_PLACEHOLDER';
@@ -178,12 +219,12 @@ function onModelLoaded(gltf) {
   }
 
   // --- animations ---
-  // Attached to the WHOLE loaded model (not just `chef`) on purpose: in Blender,
-  // an armature linked via an Armature *modifier* isn't necessarily a parent/child
-  // of the mesh object, so the bones might not be descendants of `chef`. Three.js
-  // resolves animation tracks by searching the mixer root's full subtree, so using
-  // `model` guarantees the bones are reachable no matter how the rig is parented.
-  const mixer = new THREE.AnimationMixer(model);
+  // Mixer root is the WHOLE SCENE (not `model`) on purpose: the wrapping step
+  // above may have moved the armature/bones out from under `model` and into
+  // playerRoot, which sits directly under `scene`. Using `scene` as the mixer
+  // root guarantees every animated node is still reachable no matter how
+  // things got reparented.
+  const mixer = new THREE.AnimationMixer(scene);
   const actions = {};
 
   // If a clip has keyframes on the Bear object's OWN position/rotation/scale
@@ -276,6 +317,17 @@ function onModelLoaded(gltf) {
 
   console.log('Computed walkable bounds:', bounds, '| Bear spawn position:', playerRoot.position.clone());
 
+  // Always-visible status readout — check this on-screen instead of digging
+  // through DevTools when something seems wired up wrong.
+  const statusEl = document.getElementById('debug-status');
+  statusEl.classList.remove('hidden');
+  statusEl.textContent =
+    `Player root: ${chef ? `"${chef.name}" ✓` : 'NOT FOUND ✗ (placeholder)'}\n` +
+    `Animations: ${Object.keys(actions).length ? Object.keys(actions).join(', ') : '(none found)'}\n` +
+    `Floor: ${floor ? `"${floor.name}" ✓` : 'NOT FOUND ✗ (default bounds)'}\n` +
+    `Light: ${importedLight ? `"${importedLight.name}" (${importedLight.type}) ✓` : 'not found (using fallback)'}\n` +
+    `Camera: ${importedCamera ? `"${importedCamera.name}" ✓` : 'not found (using computed framing)'}`;
+
   // Snap straight to the intended framing instead of slowly lerping in from
   // the hardcoded startup position — this is the very first thing a visitor
   // sees, so it should be right on the first rendered frame.
@@ -359,12 +411,25 @@ function updateCamera() {
 // ---------------------------------------------------------------------------
 // Render loop
 // ---------------------------------------------------------------------------
+const liveStatusEl = document.getElementById('debug-live');
+
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1);
 
   if (playerController) {
     playerController.update(dt, yaw);
+
+    liveStatusEl.classList.remove('hidden');
+    const p = playerController.root.position;
+    const heldKeys = [...playerController.keys].join(', ') || '(none)';
+    const currentClip = playerController.currentAction?.getClip().name ?? '(none)';
+    liveStatusEl.textContent =
+      `LIVE — watch these while pressing WASD:\n` +
+      `bear position: x=${p.x.toFixed(2)}  z=${p.z.toFixed(2)}\n` +
+      `keys held: ${heldKeys}\n` +
+      `shift (run): ${playerController.shiftHeld}\n` +
+      `current clip: ${currentClip}`;
   }
   updateCamera();
   if (interactionManager) {
