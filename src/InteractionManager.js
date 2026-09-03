@@ -5,6 +5,12 @@ import { findGroupObjects } from './nameMatch.js';
 const DEFAULT_RADIUS = 2.2;
 const HIGHLIGHT_COLOR = new THREE.Color(0xC1440E); // tomato accent, matches the UI panel
 const HIGHLIGHT_INTENSITY = 0.55;
+// How directly the bear must be facing an object for it to trigger, as a
+// dot-product threshold: 1 = dead-on, 0 = 90° off to the side. 0.35 gives a
+// generous ~140° total cone in front of the bear — forgiving enough that
+// players don't have to aim precisely, while still requiring "roughly facing
+// it" rather than triggering from any angle (e.g. with the bear's back turned).
+const FACING_DOT_THRESHOLD = 0.35;
 
 /**
  * Clones the materials on every mesh under `objects` so we can safely tweak
@@ -44,6 +50,8 @@ export class InteractionManager {
     this.player = player;
     this.targets = []; // { objects, name, radius, data, highlightEntries }
     this._tmpVec = new THREE.Vector3();
+    this._forward = new THREE.Vector3();
+    this._toTarget = new THREE.Vector3();
 
     for (const name of Object.keys(interactiveContent)) {
       const objects = findGroupObjects(scene, name);
@@ -109,17 +117,33 @@ export class InteractionManager {
   update() {
     if (this.isPanelOpen) return;
 
+    // The bear's local "forward" is -Z by convention (same axis THREE's
+    // lookAt-based rotation code points at the movement target), so rotate
+    // that into world space using its current orientation.
+    this._forward.set(0, 0, -1).applyQuaternion(this.player.quaternion);
+
     let closest = null;
     let closestDist = Infinity;
 
     for (const t of this.targets) {
       let minDist = Infinity;
+      let minDistFacingOk = false;
+
       for (const obj of t.objects) {
         obj.getWorldPosition(this._tmpVec);
         const d = this._tmpVec.distanceTo(this.player.position);
-        if (d < minDist) minDist = d;
+        if (d < minDist) {
+          minDist = d;
+          if (d > 0.001) {
+            this._toTarget.copy(this._tmpVec).sub(this.player.position).normalize();
+            minDistFacingOk = this._forward.dot(this._toTarget) >= FACING_DOT_THRESHOLD;
+          } else {
+            minDistFacingOk = true; // standing right on top of it — don't block on facing
+          }
+        }
       }
-      if (minDist <= t.radius && minDist < closestDist) {
+
+      if (minDist <= t.radius && minDistFacingOk && minDist < closestDist) {
         closest = t;
         closestDist = minDist;
       }

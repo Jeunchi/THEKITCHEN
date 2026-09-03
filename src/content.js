@@ -69,6 +69,55 @@ export const interactiveContent = {
       </p>
     `,
   },
+
+  // --------------------------------------------------------------------
+  // Everything below is wired up (highlight + proximity + facing + E to
+  // interact all work), but the content is a placeholder — swap in
+  // whatever you actually want each one to say. Small props like these
+  // use a tighter radius since they sit close together on the counter.
+  // --------------------------------------------------------------------
+
+  Strawberry: {
+    eyebrow: 'Placeholder',
+    title: 'Strawberry',
+    radius: 1.3,
+    html: `<p>Put whatever you want here — a hobby, a fun fact, anything.</p>`,
+  },
+
+  Mango: {
+    eyebrow: 'Placeholder',
+    title: 'Mango',
+    radius: 1.3,
+    html: `<p>Put whatever you want here — a hobby, a fun fact, anything.</p>`,
+  },
+
+  Ham: {
+    eyebrow: 'Placeholder',
+    title: 'Ham',
+    radius: 1.3,
+    html: `<p>Put whatever you want here.</p>`,
+  },
+
+  'Chicken drumstick': {
+    eyebrow: 'Placeholder',
+    title: 'Chicken Drumstick',
+    radius: 1.3,
+    html: `<p>Put whatever you want here.</p>`,
+  },
+
+  Fork: {
+    eyebrow: 'Placeholder',
+    title: 'Fork',
+    radius: 1.2,
+    html: `<p>Put whatever you want here — maybe a skills list?</p>`,
+  },
+
+  Spoon: {
+    eyebrow: 'Placeholder',
+    title: 'Spoon',
+    radius: 1.2,
+    html: `<p>Put whatever you want here.</p>`,
+  },
 };
 
 // Objects the bear can walk right up to and "read" but that don't need their
