@@ -68,7 +68,9 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x2a1f1a);
-scene.fog = new THREE.Fog(0x2a1f1a, 12, 30);
+// No fog — for a room this size, fog was kicking in well before it should,
+// blending distant furniture into the background color and making the whole
+// room look dim/washed out whenever the camera pulled back.
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 3, 6);
@@ -333,7 +335,7 @@ function onModelLoaded(gltf) {
 
     // Size the starting camera distance to the room instead of a fixed guess.
     const diagonal = Math.hypot(size.x, size.z);
-    camDistance = THREE.MathUtils.clamp(diagonal * 0.45, 8, 20);
+    camDistance = THREE.MathUtils.clamp(diagonal * 0.65, 12, 30);
   } else {
     console.warn(
       'No object named "Floor" found — falling back to a default walkable area and ' +
@@ -360,7 +362,7 @@ function onModelLoaded(gltf) {
     const offset = new THREE.Vector3().subVectors(camWorldPos, cameraTarget);
     const dist = offset.length();
     if (dist > 0.01) {
-      camDistance = THREE.MathUtils.clamp(dist, 3, 24);
+      camDistance = THREE.MathUtils.clamp(dist, 3, 40);
       yaw = Math.atan2(offset.x, offset.z);
       pitch = THREE.MathUtils.clamp(Math.asin(THREE.MathUtils.clamp(offset.y / dist, -1, 1)), 0.05, 1.4);
     }
@@ -409,7 +411,7 @@ let lastX = 0;
 let lastY = 0;
 let camDistance = 6; // overwritten once the room's real size (or imported camera) is known
 const CAM_MIN_DIST = 3;
-const CAM_MAX_DIST = 24;
+const CAM_MAX_DIST = 40;
 
 function onDragStart(x, y) { isDragging = true; lastX = x; lastY = y; }
 function onDragMove(x, y) {
