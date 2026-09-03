@@ -98,7 +98,11 @@ export class PlayerController {
       // after normalize()) whenever the camera's pitch was steep, silently
       // breaking movement and turning while the walk animation kept playing.
       this._camForward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
-      this._camRight.crossVectors(this._camForward, THREE.Object3D.DEFAULT_UP).negate();
+      // NOTE: no .negate() here — with this forward formula, cross(forward, up)
+      // already gives the correct rightward vector. A .negate() was needed for
+      // the old camera.getWorldDirection()-based forward, but left in during
+      // a later change it silently swapped A and D.
+      this._camRight.crossVectors(this._camForward, THREE.Object3D.DEFAULT_UP);
 
       this._moveDir.set(0, 0, 0)
         .addScaledVector(this._camForward, inputZ)

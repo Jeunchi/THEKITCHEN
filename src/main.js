@@ -269,16 +269,23 @@ function onModelLoaded(gltf) {
   let bounds;
   if (floor) {
     const box = new THREE.Box3().setFromObject(floor);
-    const margin = 0.8; // keep the bear a bit clear of the walls
-    bounds = {
-      minX: box.min.x + margin,
-      maxX: box.max.x - margin,
-      minZ: box.min.z + margin,
-      maxZ: box.max.z - margin,
-    };
-
     const size = new THREE.Vector3();
     box.getSize(size);
+
+    // The margin keeps the bear clear of walls, but if the floor is thinner
+    // than 2x the margin along an axis, min could end up > max — and clamping
+    // to an inverted range silently snaps the position to a fixed wrong value
+    // every frame (looks exactly like "any movement teleports me to one
+    // spot"). Scaling the margin down for thin axes makes that impossible.
+    const marginX = Math.min(0.8, size.x * 0.4);
+    const marginZ = Math.min(0.8, size.z * 0.4);
+    bounds = {
+      minX: box.min.x + marginX,
+      maxX: box.max.x - marginX,
+      minZ: box.min.z + marginZ,
+      maxZ: box.max.z - marginZ,
+    };
+
     const center = new THREE.Vector3();
     box.getCenter(center);
     cameraTarget.copy(center);
@@ -325,6 +332,7 @@ function onModelLoaded(gltf) {
     `Player root: ${chef ? `"${chef.name}" ✓` : 'NOT FOUND ✗ (placeholder)'}\n` +
     `Animations: ${Object.keys(actions).length ? Object.keys(actions).join(', ') : '(none found)'}\n` +
     `Floor: ${floor ? `"${floor.name}" ✓` : 'NOT FOUND ✗ (default bounds)'}\n` +
+    `Bounds: x[${bounds.minX.toFixed(2)}, ${bounds.maxX.toFixed(2)}]  z[${bounds.minZ.toFixed(2)}, ${bounds.maxZ.toFixed(2)}]\n` +
     `Light: ${importedLight ? `"${importedLight.name}" (${importedLight.type}) ✓` : 'not found (using fallback)'}\n` +
     `Camera: ${importedCamera ? `"${importedCamera.name}" ✓` : 'not found (using computed framing)'}`;
 
