@@ -5,6 +5,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { PlayerController } from './PlayerController.js';
 import { InteractionManager } from './InteractionManager.js';
 import { TouchJoystick } from './TouchJoystick.js';
+import { buildColliders } from './Colliders.js';
 
 // ---------------------------------------------------------------------------
 // CONFIG — change this to match your exported filename
@@ -187,6 +188,7 @@ function onModelLoaded(gltf) {
   const chef = findNamedObject(model, PLAYER_ROOT_NAME);
   let playerRoot;
   let pivotCorrection = null;
+  let bearCollisionRadius = 0.4; // sensible default, overwritten below once we know the bear's actual size
   if (chef) {
     playerRoot = new THREE.Object3D();
     playerRoot.name = 'BearMovementRig';
@@ -222,6 +224,13 @@ function onModelLoaded(gltf) {
     const box = new THREE.Box3().setFromObject(playerRoot);
     const worldCenter = new THREE.Vector3();
     box.getCenter(worldCenter);
+    const boxSize = new THREE.Vector3();
+    box.getSize(boxSize);
+    // Slightly shrink the measured footprint (0.85x) so the bear can still
+    // get close enough to obstacles to trigger interaction prompts, rather
+    // than being stopped a full body-width away.
+    bearCollisionRadius = Math.max(boxSize.x, boxSize.z) / 2 * 0.85;
+
     const planarDelta = new THREE.Vector3(
       worldCenter.x - playerRoot.position.x,
       0,
@@ -335,7 +344,10 @@ function onModelLoaded(gltf) {
     cameraTarget.copy(playerRoot.position);
   }
 
-  playerController = new PlayerController(playerRoot, mixer, actions, bounds);
+  const colliders = buildColliders(model);
+  console.log(`Built ${colliders.length} collision box(es) from the kitchen furniture/appliances.`);
+
+  playerController = new PlayerController(playerRoot, mixer, actions, bounds, colliders, bearCollisionRadius);
   interactionManager = new InteractionManager(model, playerRoot);
   interactionManager.setCamera(camera);
 
@@ -366,6 +378,7 @@ function onModelLoaded(gltf) {
     `Floor: ${floor ? `"${floor.name}" ✓` : 'NOT FOUND ✗ (default bounds)'}\n` +
     `Bounds: x[${bounds.minX.toFixed(2)}, ${bounds.maxX.toFixed(2)}]  z[${bounds.minZ.toFixed(2)}, ${bounds.maxZ.toFixed(2)}]\n` +
     `Pivot correction: ${pivotCorrection ? `(${pivotCorrection.x.toFixed(2)}, ${pivotCorrection.z.toFixed(2)}) applied` : 'none needed'}\n` +
+    `Collision: ${colliders.length} box(es), bear radius ${bearCollisionRadius.toFixed(2)}m\n` +
     `Light: ${importedLight ? `"${importedLight.name}" (${importedLight.type}) ✓` : 'not found (using fallback)'}\n` +
     `Camera: ${importedCamera ? `"${importedCamera.name}" ✓` : 'not found (using computed framing)'}`;
 

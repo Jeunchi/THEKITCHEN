@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isPositionFree } from './Colliders.js';
 
 const MOVE_SPEED = 3.2;       // meters/second, walking
 const RUN_SPEED = 6;          // meters/second, holding Shift
@@ -21,12 +22,16 @@ export class PlayerController {
    * @param {THREE.AnimationMixer} mixer
    * @param {Record<string, THREE.AnimationAction>} actions - keyed by lowercase clip name
    * @param {{minX:number,maxX:number,minZ:number,maxZ:number}} [bounds] - optional room bounds
+   * @param {Array<{minX,maxX,minZ,maxZ}>} [colliders] - obstacle boxes the bear can't walk through
+   * @param {number} [collisionRadius] - the bear's collision radius, in meters
    */
-  constructor(root, mixer, actions, bounds = null) {
+  constructor(root, mixer, actions, bounds = null, colliders = [], collisionRadius = 0.4) {
     this.root = root;
     this.mixer = mixer;
     this.actions = actions;
     this.bounds = bounds;
+    this.colliders = colliders;
+    this.collisionRadius = collisionRadius;
 
     this.keys = new Set();
     this.joystickVector = new THREE.Vector2(0, 0); // set externally by touch controls
@@ -111,13 +116,34 @@ export class PlayerController {
       if (this._moveDir.lengthSq() > 0.0001) {
         this._moveDir.normalize();
 
-        this.root.position.addScaledVector(this._moveDir, moveSpeed * dt);
+        const curX = this.root.position.x;
+        const curZ = this.root.position.z;
+        const desiredX = curX + this._moveDir.x * moveSpeed * dt;
+        const desiredZ = curZ + this._moveDir.z * moveSpeed * dt;
+
+        // Try moving on both axes at once first; if that's blocked, try each
+        // axis independently so the bear slides along an obstacle's edge
+        // instead of just stopping dead when approaching at an angle.
+        if (isPositionFree(desiredX, desiredZ, this.colliders, this.collisionRadius)) {
+          this.root.position.x = desiredX;
+          this.root.position.z = desiredZ;
+        } else {
+          if (isPositionFree(desiredX, curZ, this.colliders, this.collisionRadius)) {
+            this.root.position.x = desiredX;
+          }
+          if (isPositionFree(this.root.position.x, desiredZ, this.colliders, this.collisionRadius)) {
+            this.root.position.z = desiredZ;
+          }
+        }
 
         if (this.bounds) {
           this.root.position.x = THREE.MathUtils.clamp(this.root.position.x, this.bounds.minX, this.bounds.maxX);
           this.root.position.z = THREE.MathUtils.clamp(this.root.position.z, this.bounds.minZ, this.bounds.maxZ);
         }
 
+        // Face the intended direction of travel even if a collision partially
+        // or fully blocked the actual movement this frame — turning to "push"
+        // against an obstacle reads more naturally than freezing rotation too.
         const lookTarget = new THREE.Vector3().copy(this.root.position).add(this._moveDir);
         const m = new THREE.Matrix4().lookAt(this.root.position, lookTarget, THREE.Object3D.DEFAULT_UP);
         this._targetQuat.setFromRotationMatrix(m);
