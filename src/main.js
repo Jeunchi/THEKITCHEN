@@ -87,10 +87,16 @@ const key = new THREE.DirectionalLight(0xffffff, 1.8);
 key.position.set(4, 6, 3);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
-key.shadow.camera.left = -8;
-key.shadow.camera.right = 8;
-key.shadow.camera.top = 8;
-key.shadow.camera.bottom = -8;
+key.shadow.camera.left = -16;
+key.shadow.camera.right = 16;
+key.shadow.camera.top = 16;
+key.shadow.camera.bottom = -16;
+key.shadow.camera.far = 60;
+key.shadow.bias = -0.0005; // reduces shadow acne/self-shadowing artifacts
+key.shadow.camera.updateProjectionMatrix(); // REQUIRED — without this, the frustum
+// changes above never actually apply, and the light keeps using its much smaller
+// default bounds. That default frustum's hard edge is exactly what showed up as
+// a visible diagonal shadow seam cutting across the room.
 scene.add(key);
 
 // ---------------------------------------------------------------------------
@@ -157,10 +163,12 @@ function onModelLoaded(gltf) {
     importedLight.castShadow = true;
     if (importedLight.shadow?.camera) {
       importedLight.shadow.mapSize.set(2048, 2048);
-      importedLight.shadow.camera.left = -12;
-      importedLight.shadow.camera.right = 12;
-      importedLight.shadow.camera.top = 12;
-      importedLight.shadow.camera.bottom = -12;
+      importedLight.shadow.camera.left = -16;
+      importedLight.shadow.camera.right = 16;
+      importedLight.shadow.camera.top = 16;
+      importedLight.shadow.camera.bottom = -16;
+      importedLight.shadow.camera.far = 60;
+      importedLight.shadow.bias = -0.0005;
       importedLight.shadow.camera.updateProjectionMatrix();
     }
     hemi.intensity = 0.25; // dim the fallback fill light rather than remove it — a little ambient fill still helps
