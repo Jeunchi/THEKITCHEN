@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { PlayerController } from './PlayerController.js';
 import { InteractionManager } from './InteractionManager.js';
 import { TouchJoystick } from './TouchJoystick.js';
@@ -135,35 +134,12 @@ gltfLoader.load(
 
 function onModelLoaded(gltf) {
   const model = gltf.scene;
-  let smoothedCount = 0;
   model.traverse((obj) => {
     if (obj.isMesh) {
       obj.castShadow = true;
       obj.receiveShadow = true;
-
-      // Fix bright hard-edge seams that show up in Three.js but not in
-      // Blender's viewport: if the mesh has duplicated vertices at every
-      // edge (no "Shade Smooth"/"Shade Auto Smooth" applied before export),
-      // each face gets its own flat normal, and a single strong light makes
-      // every seam between faces visible as a bright outline. Merging
-      // coincident vertices and recomputing normals fixes this without
-      // touching the Blender file. Skipped for the Bear (SkinnedMesh) since
-      // altering vertex indices on a rigged mesh risks affecting how the
-      // skin deforms, and that's not where this issue shows up anyway.
-      if (!obj.isSkinnedMesh && obj.geometry) {
-        try {
-          const merged = mergeVertices(obj.geometry);
-          merged.computeVertexNormals();
-          obj.geometry.dispose();
-          obj.geometry = merged;
-          smoothedCount++;
-        } catch (e) {
-          console.warn(`Could not smooth normals for "${obj.name}":`, e);
-        }
-      }
     }
   });
-  console.log(`Smoothed normals on ${smoothedCount} mesh(es) to remove hard-edge shading seams.`);
   scene.add(model);
   // Force an immediate world-matrix update. Without this, Box3().setFromObject()
   // below could read stale (pre-scene-graph) transforms, since Three.js normally

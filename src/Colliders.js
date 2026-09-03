@@ -8,11 +8,10 @@ import { findGroupObjects } from './nameMatch.js';
 // through that whole footprint.
 export const colliderObjectNames = [
   'FRIDGE',
-  'GAS RANGE',   // matches "GAS_RANGE" too — see normalizeForMatch in nameMatch.js
+  'GAS_RANGE',   // matches "GAS RANGE" too — see normalizeForMatch in nameMatch.js
   'Counter',
   'Cabinet',
   'Countertop',
-  'Faucet',
   'Trash',
   'Exhaust',
 ];

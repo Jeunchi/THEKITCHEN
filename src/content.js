@@ -26,7 +26,7 @@ export const interactiveContent = {
     `,
   },
 
-  'GAS RANGE': {
+  GAS_RANGE: {
     eyebrow: 'Projects',
     title: 'What I\'ve been cooking',
     radius: 2.4,
@@ -51,7 +51,11 @@ export const interactiveContent = {
     `,
   },
 
-  Faucet: {
+  // Reassigned from "Faucet" — that object got merged directly into the
+  // Counter mesh, so it no longer exists as its own named object. Move this
+  // to whichever remaining object you'd like ("Trash" is just a placeholder
+  // — the key just needs to match an object name in your exported model).
+  Trash: {
     eyebrow: 'Contact',
     title: "Let's talk",
     radius: 1.8,
@@ -72,7 +76,7 @@ export const interactiveContent = {
 // available to wire up next (Pan, Pot, Ham, Chicken drumstick, individual
 // project write-ups, etc.)
 export const availableObjectNames = [
-  'Bear', 'GAS RANGE', 'FRIDGE', 'Counter', 'Cabinet', 'Faucet', 'Countertop',
+  'Bear', 'GAS_RANGE', 'FRIDGE', 'Counter', 'Cabinet', 'Countertop',
   'Trash', 'Strawberry', 'Mango', 'Pan', 'Pot', 'Chicken drumstick', 'Ham',
   'Plate', 'Fork', 'Spoon', 'Exhaust', 'Kitchen',
 ];
