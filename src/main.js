@@ -186,6 +186,7 @@ function onModelLoaded(gltf) {
   // transform that both the mesh and the bones ultimately inherit from.
   const chef = findNamedObject(model, PLAYER_ROOT_NAME);
   let playerRoot;
+  let pivotCorrection = null;
   if (chef) {
     playerRoot = new THREE.Object3D();
     playerRoot.name = 'BearMovementRig';
@@ -206,6 +207,37 @@ function onModelLoaded(gltf) {
       console.log(`Wrapped "${chef.name}" and its armature ("${armatureRoot.name}") under a single movement rig.`);
     } else {
       console.log(`Wrapped "${chef.name}" under a movement rig (no separate armature root found to attach).`);
+    }
+
+    // Re-center the rig's own pivot on the character's actual visual bounding
+    // box (X/Z only — Y is left alone so the feet stay on the floor). Without
+    // this, if the Bear's original object origin wasn't centered on the
+    // character (very easy to end up with on a rigged model), the rig would
+    // just inherit that same off-center pivot — meaning rotating it still
+    // swings the visible body around a point that isn't where it actually
+    // sits, which looks like "turning also slides it sideways," and the
+    // boundary clamp (which only checks the pivot's raw X/Z) can let the
+    // visible mesh clip through a wall while the pivot itself is still
+    // technically in bounds.
+    const box = new THREE.Box3().setFromObject(playerRoot);
+    const worldCenter = new THREE.Vector3();
+    box.getCenter(worldCenter);
+    const planarDelta = new THREE.Vector3(
+      worldCenter.x - playerRoot.position.x,
+      0,
+      worldCenter.z - playerRoot.position.z
+    );
+    if (planarDelta.lengthSq() > 0.0001) {
+      playerRoot.position.add(planarDelta);
+      // Compensate every direct child so nothing visually jumps — the rig
+      // has no rotation applied yet at this point, so a plain subtraction
+      // (no quaternion transform needed) keeps the visible result identical.
+      playerRoot.children.forEach((child) => child.position.sub(planarDelta));
+      pivotCorrection = planarDelta.clone();
+      console.log(
+        `Re-centered the movement rig's pivot by (${planarDelta.x.toFixed(2)}, ${planarDelta.z.toFixed(2)}) ` +
+        `to match the bear's actual visual center.`
+      );
     }
   } else {
     showDebugWarning(
@@ -333,6 +365,7 @@ function onModelLoaded(gltf) {
     `Animations: ${Object.keys(actions).length ? Object.keys(actions).join(', ') : '(none found)'}\n` +
     `Floor: ${floor ? `"${floor.name}" ✓` : 'NOT FOUND ✗ (default bounds)'}\n` +
     `Bounds: x[${bounds.minX.toFixed(2)}, ${bounds.maxX.toFixed(2)}]  z[${bounds.minZ.toFixed(2)}, ${bounds.maxZ.toFixed(2)}]\n` +
+    `Pivot correction: ${pivotCorrection ? `(${pivotCorrection.x.toFixed(2)}, ${pivotCorrection.z.toFixed(2)}) applied` : 'none needed'}\n` +
     `Light: ${importedLight ? `"${importedLight.name}" (${importedLight.type}) ✓` : 'not found (using fallback)'}\n` +
     `Camera: ${importedCamera ? `"${importedCamera.name}" ✓` : 'not found (using computed framing)'}`;
 
