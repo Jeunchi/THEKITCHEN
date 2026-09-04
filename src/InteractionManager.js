@@ -105,7 +105,9 @@ export class InteractionManager {
 
     // DOM refs
     this.promptEl = document.getElementById('prompt');
+    this.promptTextBubble = document.getElementById('prompt-text-bubble');
     this.promptTextEl = document.getElementById('prompt-text');
+    this.promptSignEl = document.getElementById('prompt-sign');
     this.panelEl = document.getElementById('panel');
     this.panelEyebrow = document.getElementById('panel-eyebrow');
     this.panelTitle = document.getElementById('panel-title');
@@ -223,7 +225,15 @@ export class InteractionManager {
     }
 
     if (closest) {
-      this.promptTextEl.textContent = `Press E to view ${closest.data.eyebrow}`;
+      if (closest.data.signImage) {
+        this.promptSignEl.src = closest.data.signImage;
+        this.promptSignEl.classList.remove('hidden');
+        this.promptTextBubble.classList.add('hidden');
+      } else {
+        this.promptTextEl.textContent = `Press E to view ${closest.data.eyebrow}`;
+        this.promptTextBubble.classList.remove('hidden');
+        this.promptSignEl.classList.add('hidden');
+      }
       this.promptEl.classList.remove('hidden');
     } else {
       this.promptEl.classList.add('hidden');

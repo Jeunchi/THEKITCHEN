@@ -7,6 +7,11 @@
 //   - Multiple objects, renamed "Key-01", "Key-02", ...    e.g. "Counter-01",
 //     "Counter-02", "Counter-03", "Counter-04" all match the key "Counter"
 //
+// Optional `signImage`: path (under /public) to a custom banner shown in the
+// bottom-middle proximity prompt instead of the default plain-text bubble —
+// used for your four Figma signage assets. Omit it and the object just uses
+// the default text prompt ("Press E to view ...").
+//
 // Edit the text below to be your real bio / projects / education / contact.
 // Add or remove entries freely — just make sure the key matches an object
 // name (or name prefix) that actually exists in your exported model.
@@ -17,6 +22,7 @@ export const interactiveContent = {
     eyebrow: 'About',
     title: 'Hey, I\'m [Your Name]',
     radius: 4.0, // bear's own collision radius is 1.5m, so this needs real headroom to ever be reachable
+    signImage: '/ui/sign-fridge.png',
     html: `
       <p>I'm a [your role — e.g. "3D artist and front-end developer"] who likes
       building things that feel a little more alive than a normal webpage.</p>
@@ -30,6 +36,7 @@ export const interactiveContent = {
     eyebrow: 'Projects',
     title: 'What I\'ve been cooking',
     radius: 4.0,
+    signImage: '/ui/sign-gasrange.png',
     html: `
       <ul>
         <li><strong>Project One</strong> — one line on what it is and the stack used.</li>
@@ -45,12 +52,13 @@ export const interactiveContent = {
   // or responds to E. The small items sitting on top of it are the
   // selectable ones instead.
 
-  // Reassigned from "Counter" — that's now a non-interactive collider only
-  // (see note above). Move this to whichever object you'd like.
-  Exhaust: {
+  // Reassigned to "Microwave" (was "Exhaust") to match your Figma signage
+  // naming (MICROWAVE -> the Education banner).
+  Microwave: {
     eyebrow: 'Education',
     title: 'Where I trained',
     radius: 3.5,
+    signImage: '/ui/sign-microwave.png',
     html: `
       <p><strong>[Degree / Program]</strong> — [School], [Year]</p>
       <p>[A sentence or two about relevant coursework, thesis, or focus area.]</p>
@@ -59,13 +67,13 @@ export const interactiveContent = {
   },
 
   // Reassigned from "Faucet" — that object got merged directly into the
-  // Counter mesh, so it no longer exists as its own named object. Move this
-  // to whichever remaining object you'd like ("Trash" is just a placeholder
-  // — the key just needs to match an object name in your exported model).
+  // Counter mesh, so it no longer exists as its own named object. Matches
+  // your Figma signage naming (TRASHCAN -> the Contact banner).
   Trash: {
     eyebrow: 'Contact',
     title: "Let's talk",
     radius: 3.2,
+    signImage: '/ui/sign-trash.png',
     html: `
       <p>Best way to reach me is email — I read everything.</p>
       <p><a href="mailto:you@example.com">you@example.com</a></p>
@@ -82,6 +90,7 @@ export const interactiveContent = {
   // interact all work), but the content is a placeholder — swap in
   // whatever you actually want each one to say. Small props like these
   // use a tighter radius since they sit close together on the counter.
+  // No signImage set, so these fall back to the default text prompt.
   // --------------------------------------------------------------------
 
   Strawberry: {
@@ -129,10 +138,9 @@ export const interactiveContent = {
 
 // Objects the bear can walk right up to and "read" but that don't need their
 // own dedicated panel content yet — left here so you remember what's
-// available to wire up next (Pan, Pot, Ham, Chicken drumstick, individual
-// project write-ups, etc.)
+// available to wire up next (Pan, Pot, individual project write-ups, etc.)
 export const availableObjectNames = [
   'Bear', 'GAS_RANGE', 'FRIDGE', 'Counter', 'Cabinet', 'Countertop',
   'Trash', 'Strawberry', 'Mango', 'Pan', 'Pot', 'Chicken drumstick', 'Ham',
-  'Plate', 'Fork', 'Spoon', 'Exhaust', 'Kitchen',
+  'Plate', 'Fork', 'Spoon', 'Exhaust', 'Kitchen', 'Microwave',
 ];

@@ -6,6 +6,7 @@ import { PlayerController } from './PlayerController.js';
 import { InteractionManager } from './InteractionManager.js';
 import { TouchJoystick } from './TouchJoystick.js';
 import { buildColliders } from './Colliders.js';
+import { initControlsLegend } from './ControlsLegend.js';
 
 // ---------------------------------------------------------------------------
 // CONFIG — change this to match your exported filename
@@ -115,6 +116,7 @@ gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 let playerController = null;
 let interactionManager = null;
 const clock = new THREE.Clock();
+initControlsLegend();
 
 gltfLoader.load(
   MODEL_URL,
@@ -343,7 +345,7 @@ function onModelLoaded(gltf) {
 
     // Size the starting camera distance to the room instead of a fixed guess.
     const diagonal = Math.hypot(size.x, size.z);
-    camDistance = THREE.MathUtils.clamp(diagonal * 0.65, 20, 38);
+    camDistance = THREE.MathUtils.clamp(diagonal * 0.65, 12, 30);
   } else {
     console.warn(
       'No object named "Floor" found — falling back to a default walkable area and ' +
@@ -413,13 +415,13 @@ function onModelLoaded(gltf) {
 // ---------------------------------------------------------------------------
 const cameraTarget = new THREE.Vector3(0, 0, 0);
 let yaw = 0;
-let pitch = 0.75; // higher default angle — the first-load view should read as an overview, not eye-level
+let pitch = 0.5; // higher default angle — the first-load view should read as an overview, not eye-level
 let isDragging = false;
 let lastX = 0;
 let lastY = 0;
 let camDistance = 6; // overwritten once the room's real size (or imported camera) is known
-const CAM_MIN_DIST = 10;
-const CAM_MAX_DIST = 47;
+const CAM_MIN_DIST = 3;
+const CAM_MAX_DIST = 40;
 
 function onDragStart(x, y) { isDragging = true; lastX = x; lastY = y; }
 function onDragMove(x, y) {

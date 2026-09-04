@@ -23,15 +23,59 @@
       </div>
     </div>
 
-    <!-- HUD: crosshair-free proximity prompt -->
+    <!-- Controls legend, bottom-left. Each key lights up in real time as you
+         press it (see ControlsLegend.js). -->
+    <div id="controls-legend">
+      <div class="legend-wasd">
+        <div class="legend-row">
+          <div class="key-icon" data-key="w">
+            <img class="key-img key-normal" src="/ui/w-button.png" alt="W">
+            <img class="key-img key-active" src="/ui/w-onclick.png" alt="W pressed">
+          </div>
+        </div>
+        <div class="legend-row">
+          <div class="key-icon" data-key="a">
+            <img class="key-img key-normal" src="/ui/a-button.png" alt="A">
+            <img class="key-img key-active" src="/ui/a-onclick.png" alt="A pressed">
+          </div>
+          <div class="key-icon" data-key="s">
+            <img class="key-img key-normal" src="/ui/s-button.png" alt="S">
+            <img class="key-img key-active" src="/ui/s-onclick.png" alt="S pressed">
+          </div>
+          <div class="key-icon" data-key="d">
+            <img class="key-img key-normal" src="/ui/d-button.png" alt="D">
+            <img class="key-img key-active" src="/ui/d-onclick.png" alt="D pressed">
+          </div>
+        </div>
+      </div>
+      <div class="legend-secondary">
+        <div class="key-icon key-icon--wide" data-key="shift">
+          <img class="key-img key-normal" src="/ui/shift-button.png" alt="Shift">
+          <img class="key-img key-active" src="/ui/shift-onclick.png" alt="Shift pressed">
+        </div>
+        <div class="key-icon" data-key="e">
+          <img class="key-img key-normal" src="/ui/e-button.png" alt="E">
+          <img class="key-img key-active" src="/ui/e-onclick.png" alt="E pressed">
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD: proximity prompt — either a plain text bubble, or (for objects
+         with a signImage set in content.js) a custom banner graphic. -->
     <div id="prompt" class="hidden">
-      <span id="prompt-text">Press E to interact</span>
+      <div id="prompt-text-bubble">
+        <span id="prompt-text">Press E to interact</span>
+      </div>
+      <img id="prompt-sign" class="hidden" alt="" />
     </div>
 
     <!-- Info panel (About / Projects / Education / Contact) -->
     <div id="panel" class="hidden">
       <div id="panel-card">
-        <button id="panel-close" aria-label="Close">&times;</button>
+        <button id="panel-close" aria-label="Close">
+          <img class="exit-normal" src="/ui/exit-button.png" alt="Close">
+          <img class="exit-hover" src="/ui/exit-hover.png" alt="Close">
+        </button>
         <div id="panel-eyebrow"></div>
         <h2 id="panel-title"></h2>
         <div id="panel-body"></div>
@@ -46,7 +90,7 @@
       <button id="touch-interact">Interact</button>
     </div>
 
-    <div id="hint">WASD to move (hold Shift to run) · Drag to look · Scroll to zoom · E to interact</div>
+    <div id="hint">Drag to look · Scroll to zoom</div>
   </div>
 
   <script type="module" src="/src/main.js"></script>
