@@ -16,7 +16,7 @@ export const interactiveContent = {
   FRIDGE: {
     eyebrow: 'About',
     title: 'Hey, I\'m [Your Name]',
-    radius: 2.2,
+    radius: 4.0, // bear's own collision radius is 1.5m, so this needs real headroom to ever be reachable
     html: `
       <p>I'm a [your role — e.g. "3D artist and front-end developer"] who likes
       building things that feel a little more alive than a normal webpage.</p>
@@ -29,7 +29,7 @@ export const interactiveContent = {
   GAS_RANGE: {
     eyebrow: 'Projects',
     title: 'What I\'ve been cooking',
-    radius: 2.4,
+    radius: 4.0,
     html: `
       <ul>
         <li><strong>Project One</strong> — one line on what it is and the stack used.</li>
@@ -43,7 +43,7 @@ export const interactiveContent = {
   Counter: {
     eyebrow: 'Education',
     title: 'Where I trained',
-    radius: 1.8, // distance is checked to whichever Counter-0X piece is nearest
+    radius: 3.5, // distance is checked to whichever Counter-0X piece is nearest
     html: `
       <p><strong>[Degree / Program]</strong> — [School], [Year]</p>
       <p>[A sentence or two about relevant coursework, thesis, or focus area.]</p>
@@ -58,7 +58,7 @@ export const interactiveContent = {
   Trash: {
     eyebrow: 'Contact',
     title: "Let's talk",
-    radius: 1.8,
+    radius: 3.2,
     html: `
       <p>Best way to reach me is email — I read everything.</p>
       <p><a href="mailto:you@example.com">you@example.com</a></p>
@@ -80,42 +80,42 @@ export const interactiveContent = {
   Strawberry: {
     eyebrow: 'Placeholder',
     title: 'Strawberry',
-    radius: 1.3,
+    radius: 3.0,
     html: `<p>Put whatever you want here — a hobby, a fun fact, anything.</p>`,
   },
 
   Mango: {
     eyebrow: 'Placeholder',
     title: 'Mango',
-    radius: 1.3,
+    radius: 3.0,
     html: `<p>Put whatever you want here — a hobby, a fun fact, anything.</p>`,
   },
 
   Ham: {
     eyebrow: 'Placeholder',
     title: 'Ham',
-    radius: 1.3,
+    radius: 3.0,
     html: `<p>Put whatever you want here.</p>`,
   },
 
   'Chicken drumstick': {
     eyebrow: 'Placeholder',
     title: 'Chicken Drumstick',
-    radius: 1.3,
+    radius: 3.0,
     html: `<p>Put whatever you want here.</p>`,
   },
 
   Fork: {
     eyebrow: 'Placeholder',
     title: 'Fork',
-    radius: 1.2,
+    radius: 3.0,
     html: `<p>Put whatever you want here — maybe a skills list?</p>`,
   },
 
   Spoon: {
     eyebrow: 'Placeholder',
     title: 'Spoon',
-    radius: 1.2,
+    radius: 3.0,
     html: `<p>Put whatever you want here.</p>`,
   },
 };

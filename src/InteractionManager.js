@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { interactiveContent } from './content.js';
 import { findGroupObjects } from './nameMatch.js';
 
-const DEFAULT_RADIUS = 2.2;
+const DEFAULT_RADIUS = 3.0; // bear's own collision radius (~1.5m) needs real headroom to ever reach anything
 const HIGHLIGHT_COLOR = new THREE.Color(0xC1440E); // tomato accent, matches the UI panel
 const HIGHLIGHT_INTENSITY = 1.1; // emissive strength when a material supports it
 const HIGHLIGHT_COLOR_MIX = 0.55; // how much to blend toward HIGHLIGHT_COLOR as a fallback (0-1)
