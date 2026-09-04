@@ -176,11 +176,20 @@ export class InteractionManager {
       let minDistDot = null;
 
       for (const center of t.centers) {
-        const d = center.distanceTo(this.player.position);
+        // Horizontal (XZ) distance only — deliberately ignoring height.
+        // Small props sit noticeably higher than the bear's own pivot (they're
+        // on top of a counter), and a full 3D distance would penalize them for
+        // that height difference even when the bear is standing right next to
+        // the counter below them. A walking character's proximity to
+        // something should be about how far it has to walk, not how tall the
+        // object sits.
+        const dx = center.x - this.player.position.x;
+        const dz = center.z - this.player.position.z;
+        const d = Math.hypot(dx, dz);
         if (d < minDist) {
           minDist = d;
           if (d > 0.001) {
-            this._toTarget.copy(center).sub(this.player.position).normalize();
+            this._toTarget.set(dx, 0, dz).normalize();
             minDistDot = this._forward.dot(this._toTarget);
             minDistFacingOk = minDistDot >= FACING_DOT_THRESHOLD;
           } else {

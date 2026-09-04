@@ -40,10 +40,17 @@ export const interactiveContent = {
     `,
   },
 
-  Counter: {
+  // Counter is intentionally NOT interactive — it's still a solid collider
+  // (see Colliders.js) so the bear bumps into it, but it no longer highlights
+  // or responds to E. The small items sitting on top of it are the
+  // selectable ones instead.
+
+  // Reassigned from "Counter" — that's now a non-interactive collider only
+  // (see note above). Move this to whichever object you'd like.
+  Exhaust: {
     eyebrow: 'Education',
     title: 'Where I trained',
-    radius: 3.5, // distance is checked to whichever Counter-0X piece is nearest
+    radius: 3.5,
     html: `
       <p><strong>[Degree / Program]</strong> — [School], [Year]</p>
       <p>[A sentence or two about relevant coursework, thesis, or focus area.]</p>
