@@ -4,7 +4,8 @@ import { findGroupObjects } from './nameMatch.js';
 
 const DEFAULT_RADIUS = 2.2;
 const HIGHLIGHT_COLOR = new THREE.Color(0xC1440E); // tomato accent, matches the UI panel
-const HIGHLIGHT_INTENSITY = 0.55;
+const HIGHLIGHT_INTENSITY = 1.1; // emissive strength when a material supports it
+const HIGHLIGHT_COLOR_MIX = 0.55; // how much to blend toward HIGHLIGHT_COLOR as a fallback (0-1)
 // How directly the bear must be facing an object for it to trigger, as a
 // dot-product threshold: 1 = dead-on, 0 = 90° off to the side. 0.35 gives a
 // generous ~140° total cone in front of the bear — forgiving enough that
@@ -14,9 +15,19 @@ const FACING_DOT_THRESHOLD = 0.35;
 
 /**
  * Clones the materials on every mesh under `objects` so we can safely tweak
- * emissive color for highlighting without affecting any other object in the
- * scene that might happen to share the same material.
- * Returns a flat list of { material, originalEmissive, originalIntensity }.
+ * them for highlighting without affecting any other object in the scene that
+ * might happen to share the same material.
+ *
+ * Two highlight strategies, depending on what the material supports:
+ *   - 'emissive': preferred — adds a glow on top of the material's normal
+ *     appearance without altering its base color. Works for MeshStandardMaterial
+ *     and similar (what glTF normally exports).
+ *   - 'color': fallback for materials with no emissive property (e.g. an
+ *     "Unlit" material from Blender exports as MeshBasicMaterial) — blends
+ *     the material's own color toward the highlight color instead. Every
+ *     THREE material with a visible color has a `.color` property, so this
+ *     guarantees SOME visible change even on material types we didn't
+ *     specifically plan for.
  */
 function collectHighlightEntries(objects) {
   const entries = [];
@@ -26,13 +37,23 @@ function collectHighlightEntries(objects) {
       const isArray = Array.isArray(child.material);
       const mats = isArray ? child.material : [child.material];
       const cloned = mats.map((mat) => {
-        if (!('emissive' in mat)) return mat; // e.g. a Basic material — skip highlighting it
         const clone = mat.clone();
-        entries.push({
-          material: clone,
-          originalEmissive: clone.emissive.clone(),
-          originalIntensity: clone.emissiveIntensity ?? 1,
-        });
+        if ('emissive' in clone) {
+          entries.push({
+            material: clone,
+            mode: 'emissive',
+            original: clone.emissive.clone(),
+            originalIntensity: clone.emissiveIntensity ?? 1,
+          });
+        } else if (clone.color) {
+          entries.push({
+            material: clone,
+            mode: 'color',
+            original: clone.color.clone(),
+          });
+        }
+        // If neither exists, this material is left as-is (rare — most THREE
+        // materials have at least .color).
         return clone;
       });
       child.material = isArray ? cloned : cloned[0];
@@ -62,13 +83,20 @@ export class InteractionManager {
         );
         continue;
       }
+      const highlightEntries = collectHighlightEntries(objects);
+      if (highlightEntries.length === 0) {
+        console.warn(
+          `[InteractionManager] "${name}" has no highlightable materials — it will still ` +
+          `respond to proximity/E, but won't visually glow. This is unusual; check its material type.`
+        );
+      }
       this.targets.push({
         objects,
         centers: objects.map((obj) => new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3())),
         name,
         radius: interactiveContent[name].radius ?? DEFAULT_RADIUS,
         data: interactiveContent[name],
-        highlightEntries: collectHighlightEntries(objects),
+        highlightEntries,
       });
     }
     console.log('[InteractionManager] Registered targets:', this.targets.map((t) => t.name));
@@ -104,12 +132,20 @@ export class InteractionManager {
   _setHighlight(target, active) {
     if (!target) return;
     for (const entry of target.highlightEntries) {
-      if (active) {
-        entry.material.emissive.set(HIGHLIGHT_COLOR);
-        entry.material.emissiveIntensity = HIGHLIGHT_INTENSITY;
-      } else {
-        entry.material.emissive.copy(entry.originalEmissive);
-        entry.material.emissiveIntensity = entry.originalIntensity;
+      if (entry.mode === 'emissive') {
+        if (active) {
+          entry.material.emissive.set(HIGHLIGHT_COLOR);
+          entry.material.emissiveIntensity = HIGHLIGHT_INTENSITY;
+        } else {
+          entry.material.emissive.copy(entry.original);
+          entry.material.emissiveIntensity = entry.originalIntensity;
+        }
+      } else if (entry.mode === 'color') {
+        if (active) {
+          entry.material.color.copy(entry.original).lerp(HIGHLIGHT_COLOR, HIGHLIGHT_COLOR_MIX);
+        } else {
+          entry.material.color.copy(entry.original);
+        }
       }
     }
   }
