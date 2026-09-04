@@ -49,7 +49,6 @@ export class InteractionManager {
   constructor(scene, player) {
     this.player = player;
     this.targets = []; // { objects, name, radius, data, highlightEntries }
-    this._tmpVec = new THREE.Vector3();
     this._forward = new THREE.Vector3();
     this._toTarget = new THREE.Vector3();
 
@@ -65,12 +64,14 @@ export class InteractionManager {
       }
       this.targets.push({
         objects,
+        centers: objects.map((obj) => new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3())),
         name,
         radius: interactiveContent[name].radius ?? DEFAULT_RADIUS,
         data: interactiveContent[name],
         highlightEntries: collectHighlightEntries(objects),
       });
     }
+    console.log('[InteractionManager] Registered targets:', this.targets.map((t) => t.name));
 
     this.nearest = null; // currently-in-range target, or null
 
@@ -125,22 +126,39 @@ export class InteractionManager {
     let closest = null;
     let closestDist = Infinity;
 
+    // Diagnostic only: the single nearest object BY DISTANCE ALONE, regardless
+    // of whether it passes the radius/facing checks. Exposed as this.debugNearest
+    // so the on-screen HUD can show exactly why something isn't triggering.
+    let debugName = null;
+    let debugDist = Infinity;
+    let debugRadius = null;
+    let debugDot = null;
+
     for (const t of this.targets) {
       let minDist = Infinity;
       let minDistFacingOk = false;
+      let minDistDot = null;
 
-      for (const obj of t.objects) {
-        obj.getWorldPosition(this._tmpVec);
-        const d = this._tmpVec.distanceTo(this.player.position);
+      for (const center of t.centers) {
+        const d = center.distanceTo(this.player.position);
         if (d < minDist) {
           minDist = d;
           if (d > 0.001) {
-            this._toTarget.copy(this._tmpVec).sub(this.player.position).normalize();
-            minDistFacingOk = this._forward.dot(this._toTarget) >= FACING_DOT_THRESHOLD;
+            this._toTarget.copy(center).sub(this.player.position).normalize();
+            minDistDot = this._forward.dot(this._toTarget);
+            minDistFacingOk = minDistDot >= FACING_DOT_THRESHOLD;
           } else {
+            minDistDot = 1;
             minDistFacingOk = true; // standing right on top of it — don't block on facing
           }
         }
+      }
+
+      if (minDist < debugDist) {
+        debugDist = minDist;
+        debugName = t.name;
+        debugRadius = t.radius;
+        debugDot = minDistDot;
       }
 
       if (minDist <= t.radius && minDistFacingOk && minDist < closestDist) {
@@ -148,6 +166,10 @@ export class InteractionManager {
         closestDist = minDist;
       }
     }
+
+    this.debugNearest = debugName
+      ? { name: debugName, dist: debugDist, radius: debugRadius, dot: debugDot }
+      : null;
 
     if (closest !== this.nearest) {
       this._setHighlight(this.nearest, false);

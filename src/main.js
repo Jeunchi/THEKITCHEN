@@ -483,21 +483,35 @@ function animate() {
 
   if (playerController) {
     playerController.update(dt, yaw);
+  }
+  updateCamera();
+  if (interactionManager) {
+    interactionManager.update();
+  }
 
+  if (playerController) {
     liveStatusEl.classList.remove('hidden');
     const p = playerController.root.position;
     const heldKeys = [...playerController.keys].join(', ') || '(none)';
     const currentClip = playerController.currentAction?.getClip().name ?? '(none)';
+
+    let interactionLine = 'interaction: (no targets registered)';
+    const dn = interactionManager?.debugNearest;
+    if (dn) {
+      const distOk = dn.dist <= dn.radius;
+      const dotOk = dn.dot === null || dn.dot >= 0.35;
+      interactionLine =
+        `nearest: "${dn.name}"  dist=${dn.dist.toFixed(2)}/${dn.radius.toFixed(2)}${distOk ? ' ✓' : ' ✗ TOO FAR'}  ` +
+        `facingDot=${dn.dot === null ? 'n/a' : dn.dot.toFixed(2)}${dotOk ? ' ✓' : ' ✗ NOT FACING'}`;
+    }
+
     liveStatusEl.textContent =
       `LIVE — watch these while pressing WASD:\n` +
       `bear position: x=${p.x.toFixed(2)}  z=${p.z.toFixed(2)}\n` +
       `keys held: ${heldKeys}\n` +
       `shift (run): ${playerController.shiftHeld}\n` +
-      `current clip: ${currentClip}`;
-  }
-  updateCamera();
-  if (interactionManager) {
-    interactionManager.update();
+      `current clip: ${currentClip}\n` +
+      interactionLine;
   }
 
   renderer.render(scene, camera);
