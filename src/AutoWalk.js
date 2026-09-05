@@ -2,73 +2,133 @@
 // Auto-walk: click a nav button (About / Education / Projects / Contact) and
 // the bear walks itself to the matching object.
 //
-// Routing strategy:
-//   1. Classify the bear's CURRENT position and the destination by nearest
-//      "row" (TOP z=-1.9, MIDDLE z=1.4, BOTTOM z=5).
-//   2. If they're on the SAME row, walk directly: no detour to any edge
-//      node at all — just straight to (target.x, rowZ), then straight into
-//      the object. This is the common case now that all four objects sit
-//      on the MIDDLE row.
-//   3. If they're on DIFFERENT rows, transit via whichever edge COLUMN
-//      (x=-8.5 or x=8.8) is closer to the bear's current x, moving along
-//      that column between rows before proceeding along the destination's
-//      row. This avoids the "always detour to one far corner" problem.
-//   4. The final straight-in segment naturally turns the bear to face the
-//      object, since normal movement already turns the bear to face
-//      wherever it's walking. Some objects (currently just the gas range)
-//      are rotated the opposite way, so they get an explicit extra
-//      turn-in-place step after arriving (see `finalFacing` below).
+// The 8 points form a single closed loop (ring) around the room's central
+// obstacle (the island counter) — think "square donut," walking only along
+// the perimeter:
+//
+//   TOP_LEFT -> TOP_MIDDLE -> TOP_RIGHT -> MIDDLE_RIGHT -> BOTTOM_RIGHT
+//   -> BOTTOM_MIDDLE -> BOTTOM_LEFT -> MIDDLE_LEFT -> (back to TOP_LEFT)
+//
+// Routing:
+//   1. Project the bear's CURRENT position onto the ring (nearest point on
+//      whichever edge it's closest to — this is usually a named node, but
+//      doesn't have to be).
+//   2. Project the destination onto the ring the same way.
+//   3. Walk the shorter of the two directions around the loop between those
+//      two projected points, passing through only the actual named nodes
+//      that fall strictly in between.
+//   4. The walk naturally stops exactly at the destination's projected
+//      point on the ring — it never "overshoots" to the next named node,
+//      because that projected point (not the node) is the actual waypoint.
+//   5. One final short straight step off the ring into the object's exact
+//      position. That final segment is also what turns the bear to face it.
+//
+// The gas range is rotated the opposite way from the other three, so it
+// gets an explicit extra turn-in-place after arriving (see `finalFacing`).
 // ---------------------------------------------------------------------------
 
-const ROW_Z = { TOP: -1.9, MIDDLE: 1.4, BOTTOM: 5 };
-const EDGE_LEFT_X = -8.50;
-const EDGE_RIGHT_X = 8.8;
+const RING = [
+  { name: 'TOP_LEFT', x: -8.50, z: -1.9 },
+  { name: 'TOP_MIDDLE', x: 0, z: -1.9 },
+  { name: 'TOP_RIGHT', x: 8.8, z: -1.9 },
+  { name: 'MIDDLE_RIGHT', x: 8.8, z: 1.4 },
+  { name: 'BOTTOM_RIGHT', x: 8.8, z: 5 },
+  { name: 'BOTTOM_MIDDLE', x: 0, z: 5 },
+  { name: 'BOTTOM_LEFT', x: -8.50, z: 5 },
+  { name: 'MIDDLE_LEFT', x: -8.50, z: 1.4 },
+];
 
+// Cumulative arc-length ("s") of each node around the loop, and the total
+// perimeter — lets us treat "where on the ring" as a single 1D number and
+// find the shorter direction between any two points with simple subtraction.
+const RING_S = [0];
+for (let i = 1; i < RING.length; i++) {
+  const a = RING[i - 1];
+  const b = RING[i];
+  RING_S.push(RING_S[i - 1] + Math.hypot(b.x - a.x, b.z - a.z));
+}
+const PERIMETER = RING_S[RING_S.length - 1] + Math.hypot(
+  RING[0].x - RING[RING.length - 1].x,
+  RING[0].z - RING[RING.length - 1].z
+);
+
+// NOTE: using z = -1.9 (matching the TOP edge) for all four, not the values
+// as literally typed in the request — see the chat explanation for why.
+// Double-check these against your actual scene.
 export const autoWalkDestinations = {
-  about: { label: 'Introduction', target: { x: -4.875, z: 2 }, row: 'MIDDLE' },              // FRIDGE
-  education: { label: 'Education', target: { x: 1, z: 2 }, row: 'MIDDLE' },                  // Microwave
-  projects: {                                                                                 // GAS_RANGE
+  about: { label: 'Introduction', target: { x: -4.875, z: -1.9 } },   // FRIDGE
+  education: { label: 'Education', target: { x: 1, z: -1.9 } },       // Microwave
+  projects: {                                                          // GAS_RANGE
     label: 'Projects',
-    target: { x: 3, z: 2 },
-    row: 'MIDDLE',
-    // Rotated the opposite way from the other three appliances, so the
-    // natural "face the direction you just walked" result is backwards —
-    // explicitly turn to face back toward -Z after arriving.
-    finalFacing: { x: 0, z: -1 },
+    target: { x: 3, z: -1.9 },
+    finalFacing: { x: 0, z: -1 }, // rotated opposite the other three — explicit turn after arriving
   },
-  contact: { label: 'Contact Me', target: { x: 7, z: 2 }, row: 'MIDDLE' },                    // Trash
+  contact: { label: 'Contact Me', target: { x: 7, z: -1.9 } },        // Trash
 };
 
-function nearestRow(z) {
+/** Nearest point on segment a->b to point p, as a fraction t (0..1) and coords. */
+function closestPointOnSegment(px, pz, ax, az, bx, bz) {
+  const abx = bx - ax;
+  const abz = bz - az;
+  const lenSq = abx * abx + abz * abz;
+  let t = lenSq > 0 ? ((px - ax) * abx + (pz - az) * abz) / lenSq : 0;
+  t = Math.max(0, Math.min(1, t));
+  return { x: ax + abx * t, z: az + abz * t, t };
+}
+
+/** Projects (px, pz) onto the ring: returns the closest point, its arc-length position `s`, and distance. */
+function projectToRing(px, pz) {
   let best = null;
-  let bestDist = Infinity;
-  for (const [name, rowZ] of Object.entries(ROW_Z)) {
-    const d = Math.abs(z - rowZ);
-    if (d < bestDist) { bestDist = d; best = name; }
+  for (let i = 0; i < RING.length; i++) {
+    const a = RING[i];
+    const b = RING[(i + 1) % RING.length];
+    const cp = closestPointOnSegment(px, pz, a.x, a.z, b.x, b.z);
+    const d = Math.hypot(px - cp.x, pz - cp.z);
+    if (!best || d < best.dist) {
+      const edgeLen = Math.hypot(b.x - a.x, b.z - a.z);
+      best = { s: RING_S[i] + cp.t * edgeLen, x: cp.x, z: cp.z, dist: d };
+    }
   }
   return best;
 }
 
+/** Named ring nodes with arc-length position `s` strictly between s1 and s2, walking forward (increasing s, wrapping). */
+function nodesBetweenForward(s1, s2) {
+  const targetRel = (s2 - s1 + PERIMETER) % PERIMETER;
+  const found = [];
+  for (let i = 0; i < RING.length; i++) {
+    const sRel = (RING_S[i] - s1 + PERIMETER) % PERIMETER;
+    if (sRel > 1e-6 && sRel < targetRel - 1e-6) {
+      found.push({ x: RING[i].x, z: RING[i].z, sRel });
+    }
+  }
+  found.sort((a, b) => a.sRel - b.sRel);
+  return found.map(({ x, z }) => ({ x, z }));
+}
+
+/** Builds the ring-following waypoint list (excluding the final off-ring approach) from one point to another. */
+function ringPath(fromX, fromZ, toX, toZ) {
+  const start = projectToRing(fromX, fromZ);
+  const end = projectToRing(toX, toZ);
+
+  const forwardDist = (end.s - start.s + PERIMETER) % PERIMETER;
+  const backwardDist = (start.s - end.s + PERIMETER) % PERIMETER;
+
+  const middleNodes = forwardDist <= backwardDist
+    ? nodesBetweenForward(start.s, end.s)
+    : nodesBetweenForward(end.s, start.s).reverse();
+
+  return [
+    { x: start.x, z: start.z },
+    ...middleNodes,
+    { x: end.x, z: end.z },
+  ];
+}
+
 /** Builds the full waypoint list for a walk from `fromPos` to `dest`. */
 function buildWaypoints(fromPos, dest) {
-  const startRow = nearestRow(fromPos.z);
-  const destRow = dest.row;
-  const waypoints = [];
-
-  if (startRow !== destRow) {
-    // Only detour to an edge column when actually changing rows — and pick
-    // whichever column is closer to the bear's current x, not a fixed one.
-    const transitX = Math.abs(fromPos.x - EDGE_LEFT_X) <= Math.abs(fromPos.x - EDGE_RIGHT_X)
-      ? EDGE_LEFT_X
-      : EDGE_RIGHT_X;
-    waypoints.push({ x: transitX, z: ROW_Z[startRow] });
-    waypoints.push({ x: transitX, z: ROW_Z[destRow] });
-  }
-
-  // Align x on the destination's row, then walk straight into the object.
-  waypoints.push({ x: dest.target.x, z: ROW_Z[destRow] });
-  waypoints.push({ x: dest.target.x, z: dest.target.z });
-
+  const waypoints = ringPath(fromPos.x, fromPos.z, dest.target.x, dest.target.z);
+  waypoints.push({ x: dest.target.x, z: dest.target.z }); // final short step off the ring into the object
   return waypoints;
 }
 
