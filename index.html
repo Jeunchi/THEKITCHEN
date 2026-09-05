@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
   <title>Chef's Kitchen — Portfolio</title>
+  <link rel="icon" type="image/png" href="/ui/favicon-bear.png" />
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
@@ -60,29 +61,52 @@
       </div>
     </div>
 
-    <!-- Auto-walk navigation — click a destination and the bear walks there -->
+    <!-- Auto-walk navigation — click a destination and the bear walks there.
+         Reuses the same banner artwork as the bottom signage prompt. -->
     <nav id="nav-menu">
-      <button class="nav-btn" data-destination="about">Introduction</button>
-      <button class="nav-btn" data-destination="education">Education</button>
-      <button class="nav-btn" data-destination="projects">Projects</button>
-      <button class="nav-btn" data-destination="contact">Contact Me</button>
+      <button class="nav-btn" data-destination="about" aria-label="Introduction">
+        <img class="nav-img nav-normal" src="/ui/sign-fridge.png" alt="">
+        <img class="nav-img nav-hover" src="/ui/sign-fridge-hover.png" alt="">
+        <img class="nav-img nav-onclick" src="/ui/sign-fridge-onclick.png" alt="">
+      </button>
+      <button class="nav-btn" data-destination="education" aria-label="Education">
+        <img class="nav-img nav-normal" src="/ui/sign-microwave.png" alt="">
+        <img class="nav-img nav-hover" src="/ui/sign-microwave-hover.png" alt="">
+        <img class="nav-img nav-onclick" src="/ui/sign-microwave-onclick.png" alt="">
+      </button>
+      <button class="nav-btn" data-destination="projects" aria-label="Projects">
+        <img class="nav-img nav-normal" src="/ui/sign-gasrange.png" alt="">
+        <img class="nav-img nav-hover" src="/ui/sign-gasrange-hover.png" alt="">
+        <img class="nav-img nav-onclick" src="/ui/sign-gasrange-onclick.png" alt="">
+      </button>
+      <button class="nav-btn" data-destination="contact" aria-label="Contact Me">
+        <img class="nav-img nav-normal" src="/ui/sign-trash.png" alt="">
+        <img class="nav-img nav-hover" src="/ui/sign-trash-hover.png" alt="">
+        <img class="nav-img nav-onclick" src="/ui/sign-trash-onclick.png" alt="">
+      </button>
     </nav>
 
     <!-- HUD: proximity prompt — either a plain text bubble, or (for objects
-         with a signImage set in content.js) a custom banner graphic. -->
+         with a signImage set in content.js) a clickable custom banner with
+         its own hover/press states. Clicking it does the same thing as E. -->
     <div id="prompt" class="hidden">
       <div id="prompt-text-bubble">
         <span id="prompt-text">Press E to interact</span>
       </div>
-      <img id="prompt-sign" class="hidden" alt="" />
+      <button id="prompt-sign" class="hidden" aria-label="Open">
+        <img class="sign-img sign-normal" alt="">
+        <img class="sign-img sign-hover" alt="">
+        <img class="sign-img sign-onclick" alt="">
+      </button>
     </div>
 
     <!-- Info panel (About / Projects / Education / Contact) -->
     <div id="panel" class="hidden">
       <div id="panel-card">
         <button id="panel-close" aria-label="Close">
-          <img class="exit-normal" src="/ui/exit-button.png" alt="Close">
-          <img class="exit-hover" src="/ui/exit-hover.png" alt="Close">
+          <img class="exit-img exit-normal" src="/ui/exit-button.png" alt="Close">
+          <img class="exit-img exit-hover" src="/ui/exit-hover.png" alt="Close">
+          <img class="exit-img exit-onclick" src="/ui/exit-onclick.png" alt="Close">
         </button>
         <div id="panel-eyebrow"></div>
         <h2 id="panel-title"></h2>

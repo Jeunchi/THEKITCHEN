@@ -152,10 +152,32 @@ html, body {
 #prompt-sign {
   display: block;
   width: min(380px, 70vw);
-  height: auto;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+  line-height: 0; /* avoid extra vertical gap under the stacked images */
 }
 #prompt-sign.hidden { display: none; }
+.sign-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sign-hover, .sign-onclick {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+#prompt-sign:hover .sign-normal { opacity: 0; }
+#prompt-sign:hover .sign-hover { opacity: 1; }
+#prompt-sign:active .sign-hover { opacity: 0; }
+#prompt-sign:active .sign-onclick { opacity: 1; }
 
 /* ---------- Info panel ---------- */
 #panel {
@@ -194,16 +216,12 @@ html, body {
   background: none;
   cursor: pointer;
 }
-#panel-close img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-#panel-close .exit-hover { opacity: 0; transition: opacity 0.12s ease; }
-#panel-close:hover .exit-hover { opacity: 1; }
+#panel-close img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+#panel-close .exit-hover, #panel-close .exit-onclick { opacity: 0; transition: opacity 0.1s ease; }
 #panel-close:hover .exit-normal { opacity: 0; }
+#panel-close:hover .exit-hover { opacity: 1; }
+#panel-close:active .exit-hover { opacity: 0; }
+#panel-close:active .exit-onclick { opacity: 1; }
 
 #panel-eyebrow {
   font-size: 0.78rem;
@@ -241,28 +259,33 @@ html, body {
   gap: 0.6rem;
 }
 .nav-btn {
-  font-family: 'Work Sans', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--cream);
-  background: rgba(42, 31, 26, 0.72);
-  border: 1px solid rgba(242, 233, 220, 0.18);
-  border-radius: 8px;
-  padding: 0.65rem 1.1rem;
+  position: relative;
+  width: 190px;
+  padding: 0;
+  border: none;
+  background: none;
   cursor: pointer;
-  text-align: right;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-.nav-btn:hover {
-  background: rgba(193, 68, 14, 0.85);
-  border-color: transparent;
+  line-height: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+  transition: transform 0.15s ease;
 }
 .nav-btn:active { transform: scale(0.97); }
-.nav-btn.walking {
-  background: var(--tomato);
-  border-color: transparent;
+.nav-img { display: block; width: 100%; height: auto; }
+.nav-hover, .nav-onclick {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.1s ease;
 }
+.nav-btn:hover .nav-normal { opacity: 0; }
+.nav-btn:hover .nav-hover { opacity: 1; }
+.nav-btn:active .nav-hover { opacity: 0; }
+.nav-btn:active .nav-onclick { opacity: 1; }
+/* Persistent "currently walking there" state, set via JS */
+.nav-btn.walking .nav-normal, .nav-btn.walking .nav-hover { opacity: 0; }
+.nav-btn.walking .nav-onclick { opacity: 1; }
 
 @media (max-width: 768px) {
   #nav-menu {
@@ -272,10 +295,7 @@ html, body {
     transform: none;
     gap: 0.35rem;
   }
-  .nav-btn {
-    font-size: 0.68rem;
-    padding: 0.45rem 0.7rem;
-  }
+  .nav-btn { width: 120px; }
 }
 
 /* ---------- Controls legend ---------- */

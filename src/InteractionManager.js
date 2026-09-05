@@ -108,6 +108,9 @@ export class InteractionManager {
     this.promptTextBubble = document.getElementById('prompt-text-bubble');
     this.promptTextEl = document.getElementById('prompt-text');
     this.promptSignEl = document.getElementById('prompt-sign');
+    this.promptSignNormal = this.promptSignEl.querySelector('.sign-normal');
+    this.promptSignHover = this.promptSignEl.querySelector('.sign-hover');
+    this.promptSignOnclick = this.promptSignEl.querySelector('.sign-onclick');
     this.panelEl = document.getElementById('panel');
     this.panelEyebrow = document.getElementById('panel-eyebrow');
     this.panelTitle = document.getElementById('panel-title');
@@ -121,6 +124,9 @@ export class InteractionManager {
       if (e.code === 'Escape') this.closePanel();
       if (e.code === 'KeyE') this.tryOpenNearest();
     });
+
+    // The signage banner itself is clickable — same action as pressing E.
+    this.promptSignEl.addEventListener('click', () => this.tryOpenNearest());
 
     // Mobile touch "Interact" button — also gated by proximity, never a raw click/tap on the object
     const touchBtn = document.getElementById('touch-interact');
@@ -226,7 +232,15 @@ export class InteractionManager {
 
     if (closest) {
       if (closest.data.signImage) {
-        this.promptSignEl.src = closest.data.signImage;
+        // Only re-set the src's if the target actually changed, to avoid
+        // needlessly re-triggering image decode/paint every frame.
+        if (this.promptSignNormal.dataset.forTarget !== closest.name) {
+          const base = closest.data.signImage; // e.g. '/ui/sign-fridge.png'
+          this.promptSignNormal.src = base;
+          this.promptSignHover.src = base.replace(/\.png$/, '-hover.png');
+          this.promptSignOnclick.src = base.replace(/\.png$/, '-onclick.png');
+          this.promptSignNormal.dataset.forTarget = closest.name;
+        }
         this.promptSignEl.classList.remove('hidden');
         this.promptTextBubble.classList.add('hidden');
       } else {
