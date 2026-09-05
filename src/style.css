@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&display=swap');
 
 :root {
   --ink: #2A1F1A;         /* charred wood, near-black */
@@ -8,6 +8,8 @@
   --steel: #6B7280;       /* neutral for meta text */
   --panel-bg: #FBF6EC;
   --radius: 6px;
+  --font-display: 'Press Start 2P', monospace; /* headings, labels, buttons — the true pixel/arcade look */
+  --font-body: 'Pixelify Sans', sans-serif;    /* paragraphs — still pixelated, but readable at length */
 }
 
 * { box-sizing: border-box; }
@@ -19,7 +21,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: var(--ink);
-  font-family: 'Work Sans', sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
 }
 
@@ -99,12 +101,12 @@ html, body {
 #loader.hidden { opacity: 0; pointer-events: none; }
 .loader-inner { text-align: center; width: min(320px, 80vw); }
 .loader-title {
-  font-family: 'Fraunces', serif;
-  font-size: 2rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1.6;
   color: var(--cream);
-  margin-bottom: 1.5rem;
-  letter-spacing: 0.01em;
+  margin-bottom: 1.8rem;
+  letter-spacing: 0.02em;
 }
 .loader-bar {
   width: 100%;
@@ -224,21 +226,22 @@ html, body {
 #panel-close:active .exit-onclick { opacity: 1; }
 
 #panel-eyebrow {
-  font-size: 0.78rem;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
   color: var(--sage);
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.9rem;
+  letter-spacing: 0.03em;
 }
 #panel-title {
-  font-family: 'Fraunces', serif;
-  font-weight: 600;
-  font-size: 1.9rem;
-  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.7;
+  margin: 0 0 1.3rem;
   color: var(--ink);
-  line-height: 1.15;
 }
 #panel-body {
-  font-size: 0.98rem;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
   line-height: 1.6;
   color: #4a3f38;
 }
