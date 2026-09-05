@@ -14,7 +14,9 @@ const KEYS = {
 /**
  * Drives the CHEF bear: reads WASD (or a virtual joystick vector), moves the
  * root object relative to the camera's yaw, faces the direction of travel,
- * and crossfades between idle/walk animation clips.
+ * and crossfades between idle/walk animation clips. Also exposes
+ * updateAutoWalk() for scripted movement (see AutoWalk.js) that shares the
+ * exact same collision/rotation/animation logic as manual movement.
  */
 export class PlayerController {
   /**
@@ -72,6 +74,69 @@ export class PlayerController {
     return codes.some((c) => this.keys.has(c));
   }
 
+  /** True if the player is actively pressing a movement key or touch joystick right now. */
+  hasManualMovementInput() {
+    return (
+      this._isDown(KEYS.forward) ||
+      this._isDown(KEYS.back) ||
+      this._isDown(KEYS.left) ||
+      this._isDown(KEYS.right) ||
+      this.joystickVector.lengthSq() > 0.0001
+    );
+  }
+
+  /**
+   * Shared movement core: given a normalized world-space direction, applies
+   * collision-tested translation, wall-sliding, room bounds, facing rotation,
+   * and walk/run animation selection. Used by both manual WASD input
+   * (update()) and scripted auto-walk (updateAutoWalk()).
+   */
+  _applyMovement(dt, dirX, dirZ, moveSpeed) {
+    const len = Math.hypot(dirX, dirZ);
+    if (len < 0.0001) {
+      this._setAction(this._findAction('idle'));
+      this.mixer.update(dt);
+      return;
+    }
+    this._moveDir.set(dirX / len, 0, dirZ / len);
+
+    const curX = this.root.position.x;
+    const curZ = this.root.position.z;
+    const desiredX = curX + this._moveDir.x * moveSpeed * dt;
+    const desiredZ = curZ + this._moveDir.z * moveSpeed * dt;
+
+    // Try moving on both axes at once first; if that's blocked, try each
+    // axis independently so the bear slides along an obstacle's edge
+    // instead of just stopping dead when approaching at an angle.
+    if (isPositionFree(desiredX, desiredZ, this.colliders, this.collisionRadius)) {
+      this.root.position.x = desiredX;
+      this.root.position.z = desiredZ;
+    } else {
+      if (isPositionFree(desiredX, curZ, this.colliders, this.collisionRadius)) {
+        this.root.position.x = desiredX;
+      }
+      if (isPositionFree(this.root.position.x, desiredZ, this.colliders, this.collisionRadius)) {
+        this.root.position.z = desiredZ;
+      }
+    }
+
+    if (this.bounds) {
+      this.root.position.x = THREE.MathUtils.clamp(this.root.position.x, this.bounds.minX, this.bounds.maxX);
+      this.root.position.z = THREE.MathUtils.clamp(this.root.position.z, this.bounds.minZ, this.bounds.maxZ);
+    }
+
+    // Face the intended direction of travel even if a collision partially
+    // or fully blocked the actual movement this frame — turning to "push"
+    // against an obstacle reads more naturally than freezing rotation too.
+    const lookTarget = new THREE.Vector3().copy(this.root.position).add(this._moveDir);
+    const m = new THREE.Matrix4().lookAt(this.root.position, lookTarget, THREE.Object3D.DEFAULT_UP);
+    this._targetQuat.setFromRotationMatrix(m);
+    this.root.quaternion.slerp(this._targetQuat, Math.min(1, TURN_SPEED * dt));
+
+    this._setAction(this.shiftHeld ? (this._findAction('run') || this._findAction('walk')) : this._findAction('walk'));
+    this.mixer.update(dt);
+  }
+
   /**
    * @param {number} dt - seconds since last frame
    * @param {number} yaw - the camera rig's current horizontal orbit angle (radians)
@@ -95,66 +160,33 @@ export class PlayerController {
     const speed = Math.hypot(inputX, inputZ);
     const moveSpeed = this.shiftHeld ? RUN_SPEED : MOVE_SPEED;
 
-    if (speed > 0.001) {
-      // Movement direction derived directly from the camera rig's yaw angle
-      // (sin/cos of a plain number, always well-defined) rather than reading
-      // camera.getWorldDirection() and flattening out its vertical component —
-      // that flattening step could produce a zero-length vector (then NaN
-      // after normalize()) whenever the camera's pitch was steep, silently
-      // breaking movement and turning while the walk animation kept playing.
-      this._camForward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
-      // NOTE: no .negate() here — with this forward formula, cross(forward, up)
-      // already gives the correct rightward vector. A .negate() was needed for
-      // the old camera.getWorldDirection()-based forward, but left in during
-      // a later change it silently swapped A and D.
-      this._camRight.crossVectors(this._camForward, THREE.Object3D.DEFAULT_UP);
-
-      this._moveDir.set(0, 0, 0)
-        .addScaledVector(this._camForward, inputZ)
-        .addScaledVector(this._camRight, inputX);
-
-      if (this._moveDir.lengthSq() > 0.0001) {
-        this._moveDir.normalize();
-
-        const curX = this.root.position.x;
-        const curZ = this.root.position.z;
-        const desiredX = curX + this._moveDir.x * moveSpeed * dt;
-        const desiredZ = curZ + this._moveDir.z * moveSpeed * dt;
-
-        // Try moving on both axes at once first; if that's blocked, try each
-        // axis independently so the bear slides along an obstacle's edge
-        // instead of just stopping dead when approaching at an angle.
-        if (isPositionFree(desiredX, desiredZ, this.colliders, this.collisionRadius)) {
-          this.root.position.x = desiredX;
-          this.root.position.z = desiredZ;
-        } else {
-          if (isPositionFree(desiredX, curZ, this.colliders, this.collisionRadius)) {
-            this.root.position.x = desiredX;
-          }
-          if (isPositionFree(this.root.position.x, desiredZ, this.colliders, this.collisionRadius)) {
-            this.root.position.z = desiredZ;
-          }
-        }
-
-        if (this.bounds) {
-          this.root.position.x = THREE.MathUtils.clamp(this.root.position.x, this.bounds.minX, this.bounds.maxX);
-          this.root.position.z = THREE.MathUtils.clamp(this.root.position.z, this.bounds.minZ, this.bounds.maxZ);
-        }
-
-        // Face the intended direction of travel even if a collision partially
-        // or fully blocked the actual movement this frame — turning to "push"
-        // against an obstacle reads more naturally than freezing rotation too.
-        const lookTarget = new THREE.Vector3().copy(this.root.position).add(this._moveDir);
-        const m = new THREE.Matrix4().lookAt(this.root.position, lookTarget, THREE.Object3D.DEFAULT_UP);
-        this._targetQuat.setFromRotationMatrix(m);
-        this.root.quaternion.slerp(this._targetQuat, Math.min(1, TURN_SPEED * dt));
-      }
-
-      this._setAction(this.shiftHeld ? (this._findAction('run') || this._findAction('walk')) : this._findAction('walk'));
-    } else {
+    if (speed < 0.001) {
       this._setAction(this._findAction('idle'));
+      this.mixer.update(dt);
+      return;
     }
 
-    this.mixer.update(dt);
+    // Movement direction derived directly from the camera rig's yaw angle
+    // (sin/cos of a plain number, always well-defined) rather than reading
+    // camera.getWorldDirection() and flattening out its vertical component —
+    // that flattening step could produce a zero-length vector (then NaN
+    // after normalize()) whenever the camera's pitch was steep, silently
+    // breaking movement and turning while the walk animation kept playing.
+    this._camForward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+    this._camRight.crossVectors(this._camForward, THREE.Object3D.DEFAULT_UP);
+
+    const worldX = this._camForward.x * inputZ + this._camRight.x * inputX;
+    const worldZ = this._camForward.z * inputZ + this._camRight.z * inputX;
+
+    this._applyMovement(dt, worldX, worldZ, moveSpeed);
+  }
+
+  /**
+   * Scripted movement toward a world-space direction (already normalized or
+   * not — _applyMovement normalizes it). Used by AutoWalk. Always walks (no
+   * running) for a calm, predictable "walking to destination" feel.
+   */
+  updateAutoWalk(dt, dirX, dirZ) {
+    this._applyMovement(dt, dirX, dirZ, MOVE_SPEED);
   }
 }
