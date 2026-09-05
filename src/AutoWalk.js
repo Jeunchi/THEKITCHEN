@@ -2,34 +2,125 @@
 // Auto-walk: click a nav button (About / Education / Projects / Contact) and
 // the bear walks itself to the matching object.
 //
-// Path strategy per destination (matches how you described it): route
-// through a shared "corner" point first, then travel along a consistent
-// z-lane to line up with the target's x position, then make one final
-// straight approach into the target's exact (x, z). That last straight-in
-// segment is what naturally turns the bear to face the object — no special
-// rotation logic needed beyond the movement code that already turns the bear
-// to face wherever it's currently walking.
+// Routing strategy: the 8 points below form a small waypoint graph covering
+// the open floor area. Each click finds the graph node NEAREST TO WHEREVER
+// THE BEAR CURRENTLY IS, finds the shortest path (Dijkstra over this small
+// graph) to the destination's assigned "gateway" node, then does one final
+// straight approach from that gateway into the object's exact position. That
+// last straight-in segment is what naturally turns the bear to face the
+// object, since normal movement already turns the bear to face wherever
+// it's walking — no special rotation logic needed.
 //
-// Coordinates below are what you measured in-scene. Tweak freely — this file
-// is the only place they live.
+// This means: if you're already near Education and click Introduction, it
+// paths from your CURRENT nearest node toward the Introduction gateway
+// directly, instead of always resetting to one fixed far corner first.
 // ---------------------------------------------------------------------------
 
-const CORNER = { x: -8.01, z: -1.95 }; // shared point where the bear turns from the open floor into the counter lane
-const LANE_Z = -1.95; // consistent z used for the "walk along the counter" leg
-
-export const autoWalkDestinations = {
-  about: { label: 'Introduction', target: { x: -4.91, z: -2.27 } },  // FRIDGE
-  education: { label: 'Education', target: { x: 0.74, z: -2.38 } },  // Microwave
-  projects: { label: 'Projects', target: { x: 2.66, z: 2.27 } },     // GAS_RANGE
-  contact: { label: 'Contact Me', target: { x: 6.82, z: -2.64 } },   // Trash
+const NODES = {
+  TOP_RIGHT: { x: -8.50, z: -1.9 },
+  TOP_MIDDLE: { x: 0, z: -1.9 },
+  TOP_LEFT: { x: 8.8, z: -1.9 },
+  MIDDLE_RIGHT: { x: -8.50, z: 1.4 },
+  MIDDLE_LEFT: { x: 8.8, z: 1.4 },
+  BOTTOM_LEFT: { x: 8.8, z: 5 },
+  BOTTOM_MIDDLE: { x: 0, z: 5 },
+  BOTTOM_RIGHT: { x: -8.50, z: 5 },
 };
 
-function buildWaypoints(target) {
-  return [
-    { x: CORNER.x, z: CORNER.z },
-    { x: target.x, z: LANE_Z },
-    { x: target.x, z: target.z },
-  ];
+// Bidirectional adjacency: connect nodes along the same row and the same
+// column. The middle row has no center node, so TOP_MIDDLE <-> BOTTOM_MIDDLE
+// gets a direct edge (assumed clear straight down the room's center).
+const EDGES = {
+  TOP_RIGHT: ['TOP_MIDDLE', 'MIDDLE_RIGHT'],
+  TOP_MIDDLE: ['TOP_RIGHT', 'TOP_LEFT', 'BOTTOM_MIDDLE'],
+  TOP_LEFT: ['TOP_MIDDLE', 'MIDDLE_LEFT'],
+  MIDDLE_RIGHT: ['TOP_RIGHT', 'MIDDLE_LEFT', 'BOTTOM_RIGHT'],
+  MIDDLE_LEFT: ['TOP_LEFT', 'MIDDLE_RIGHT', 'BOTTOM_LEFT'],
+  BOTTOM_LEFT: ['MIDDLE_LEFT', 'BOTTOM_MIDDLE'],
+  BOTTOM_MIDDLE: ['BOTTOM_LEFT', 'BOTTOM_RIGHT', 'TOP_MIDDLE'],
+  BOTTOM_RIGHT: ['BOTTOM_MIDDLE', 'MIDDLE_RIGHT'],
+};
+
+// Each destination's "gateway" — the graph node closest to where you'd want
+// to peel off toward the actual object. All four objects sit near the TOP
+// row, so all gateways are TOP-row nodes, chosen by whichever is nearest in
+// x to the object's actual position.
+export const autoWalkDestinations = {
+  about: { label: 'Introduction', target: { x: -4.91, z: -2.27 }, gateway: 'TOP_RIGHT' },   // FRIDGE
+  education: { label: 'Education', target: { x: 0.74, z: -2.38 }, gateway: 'TOP_MIDDLE' },  // Microwave
+  projects: { label: 'Projects', target: { x: 2.66, z: 2.27 }, gateway: 'TOP_MIDDLE' },      // GAS_RANGE
+  contact: { label: 'Contact Me', target: { x: 6.82, z: -2.64 }, gateway: 'TOP_LEFT' },      // Trash
+};
+
+function nodeDist(a, b) {
+  return Math.hypot(NODES[a].x - NODES[b].x, NODES[a].z - NODES[b].z);
+}
+
+function findNearestNode(x, z) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const name of Object.keys(NODES)) {
+    const d = Math.hypot(NODES[name].x - x, NODES[name].z - z);
+    if (d < bestDist) {
+      bestDist = d;
+      best = name;
+    }
+  }
+  return best;
+}
+
+/** Simple Dijkstra over the small graph above. Returns an array of node names, or null if unreachable. */
+function shortestPath(startName, goalName) {
+  const dist = {};
+  const prev = {};
+  const remaining = new Set(Object.keys(NODES));
+  Object.keys(NODES).forEach((n) => { dist[n] = Infinity; });
+  dist[startName] = 0;
+
+  while (remaining.size > 0) {
+    let u = null;
+    let best = Infinity;
+    for (const n of remaining) {
+      if (dist[n] < best) { best = dist[n]; u = n; }
+    }
+    if (u === null) break;
+    remaining.delete(u);
+    if (u === goalName) break;
+
+    for (const v of EDGES[u] || []) {
+      const alt = dist[u] + nodeDist(u, v);
+      if (alt < dist[v]) {
+        dist[v] = alt;
+        prev[v] = u;
+      }
+    }
+  }
+
+  if (dist[goalName] === Infinity) return null;
+  const path = [];
+  let cur = goalName;
+  while (cur !== undefined) {
+    path.unshift(cur);
+    cur = prev[cur];
+  }
+  return path;
+}
+
+/** Builds the full waypoint list for a walk from `fromPos` to `dest`. */
+function buildWaypoints(fromPos, dest) {
+  const startNode = findNearestNode(fromPos.x, fromPos.z);
+  const path = shortestPath(startNode, dest.gateway) || [startNode, dest.gateway];
+
+  const waypoints = path.map((name) => ({ x: NODES[name].x, z: NODES[name].z }));
+
+  // Final approach: align x with the target while still on the gateway's
+  // row/column, then move straight into the object's exact position. This
+  // last straight segment is what turns the bear to face the object.
+  const gatewayCoord = NODES[dest.gateway];
+  waypoints.push({ x: dest.target.x, z: gatewayCoord.z });
+  waypoints.push({ x: dest.target.x, z: dest.target.z });
+
+  return waypoints;
 }
 
 const ARRIVE_THRESHOLD = 0.2; // meters — how close counts as "reached this waypoint"
@@ -49,7 +140,7 @@ export class AutoWalkController {
       console.warn(`[AutoWalk] Unknown destination "${key}"`);
       return;
     }
-    this.queue = buildWaypoints(dest.target);
+    this.queue = buildWaypoints(this.playerController.root.position, dest);
     this.active = true;
   }
 
