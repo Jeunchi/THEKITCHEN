@@ -55,15 +55,21 @@ const PERIMETER = RING_S[RING_S.length - 1] + Math.hypot(
 // NOTE: using z = -1.9 (matching the TOP edge) for all four, not the values
 // as literally typed in the request — see the chat explanation for why.
 // Double-check these against your actual scene.
+//
+// All four get an explicit finalFacing turn-in-place after arriving. This is
+// necessary because these targets sit exactly ON the ring's edge z, so there
+// is no leftover perpendicular "step into the object" for the normal
+// movement-direction facing to derive an orientation from — without this,
+// the bear would just stop mid-stride still facing sideways along the edge.
 export const autoWalkDestinations = {
-  about: { label: 'Introduction', target: { x: -4.875, z: -1.9 } },   // FRIDGE
-  education: { label: 'Education', target: { x: 1, z: -1.9 } },       // Microwave
-  projects: {                                                          // GAS_RANGE
+  about: { label: 'Introduction', target: { x: -4.875, z: -1.9 }, finalFacing: { x: 0, z: 1 } },   // FRIDGE
+  education: { label: 'Education', target: { x: 1, z: -1.9 }, finalFacing: { x: 0, z: 1 } },        // Microwave
+  projects: {                                                                                        // GAS_RANGE
     label: 'Projects',
     target: { x: 3, z: -1.9 },
-    finalFacing: { x: 0, z: -1 }, // rotated opposite the other three — explicit turn after arriving
+    finalFacing: { x: 0, z: -1 }, // rotated opposite the other three
   },
-  contact: { label: 'Contact Me', target: { x: 7, z: -1.9 } },        // Trash
+  contact: { label: 'Contact Me', target: { x: 7, z: -1.9 }, finalFacing: { x: 0, z: 1 } },         // Trash
 };
 
 /** Nearest point on segment a->b to point p, as a fraction t (0..1) and coords. */
