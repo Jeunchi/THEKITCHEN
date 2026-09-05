@@ -189,4 +189,29 @@ export class PlayerController {
   updateAutoWalk(dt, dirX, dirZ) {
     this._applyMovement(dt, dirX, dirZ, MOVE_SPEED);
   }
+
+  /**
+   * Turns in place to face a world-space direction, without moving. Used by
+   * AutoWalk's post-arrival "finalFacing" override for objects rotated the
+   * opposite way from the rest. Returns true once facing is close enough
+   * (dot product against `doneDot`) to consider the turn finished.
+   */
+  faceDirection(dt, dirX, dirZ, doneDot = 0.995) {
+    const len = Math.hypot(dirX, dirZ);
+    if (len < 0.0001) return true;
+    const nx = dirX / len;
+    const nz = dirZ / len;
+
+    const lookTarget = new THREE.Vector3(this.root.position.x + nx, this.root.position.y, this.root.position.z + nz);
+    const m = new THREE.Matrix4().lookAt(this.root.position, lookTarget, THREE.Object3D.DEFAULT_UP);
+    this._targetQuat.setFromRotationMatrix(m);
+    this.root.quaternion.slerp(this._targetQuat, Math.min(1, TURN_SPEED * dt));
+
+    this._setAction(this._findAction('idle')); // standing and turning in place, not walking
+    this.mixer.update(dt);
+
+    const currentForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.root.quaternion);
+    const dot = currentForward.x * nx + currentForward.z * nz;
+    return dot >= doneDot;
+  }
 }
