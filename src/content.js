@@ -104,7 +104,7 @@ export const interactiveContent = {
       <p>+971 54 146 4159</p>
       <p>
         <a href="https://github.com/Jeunchi" target="_blank" rel="noopener">GitHub</a>
-        $nbsp;·&nbsp;
+        &nbsp;·&nbsp;
         <a href="https://www.linkedin.com/in/charles-junjie-mempin-700480226/" target="_blank" rel="noopener">LinkedIn</a>
       </p>
     `,
