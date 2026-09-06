@@ -11,10 +11,6 @@
   <div id="app">
     <canvas id="scene"></canvas>
 
-    <div id="debug-warnings" class="hidden"></div>
-    <div id="debug-status" class="hidden"></div>
-    <div id="debug-live" class="hidden"></div>
-
     <!-- Loading screen -->
     <div id="loader">
       <div class="loader-inner">
@@ -27,6 +23,7 @@
     <!-- Controls legend, bottom-left. Each key lights up in real time as you
          press it (see ControlsLegend.js). -->
     <div id="controls-legend">
+      <div id="legend-title">Legend</div>
       <div class="legend-wasd">
         <div class="legend-row">
           <div class="key-icon" data-key="w">

@@ -44,17 +44,12 @@ function debugLogSceneNames(model) {
 }
 
 /**
- * Shows a warning both in the console AND as a visible on-screen banner, so
- * critical setup problems (missing objects, etc.) don't require opening
- * DevTools to notice.
+ * Logs a critical setup problem (missing objects, etc.) to the console.
+ * Kept console-only now that the app is in a finished/production state —
+ * check DevTools if something seems wired up wrong.
  */
-const debugWarningsEl = document.getElementById('debug-warnings');
 function showDebugWarning(message) {
   console.error(message);
-  debugWarningsEl.classList.remove('hidden');
-  const line = document.createElement('div');
-  line.textContent = `⚠ ${message}`;
-  debugWarningsEl.appendChild(line);
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +196,6 @@ function onModelLoaded(gltf) {
   // transform that both the mesh and the bones ultimately inherit from.
   const chef = findNamedObject(model, PLAYER_ROOT_NAME);
   let playerRoot;
-  let pivotCorrection = null;
   let bearCollisionRadius = 0.4; // sensible default, overwritten below once we know the bear's actual size
   if (chef) {
     playerRoot = new THREE.Object3D();
@@ -256,7 +250,6 @@ function onModelLoaded(gltf) {
       // has no rotation applied yet at this point, so a plain subtraction
       // (no quaternion transform needed) keeps the visible result identical.
       playerRoot.children.forEach((child) => child.position.sub(planarDelta));
-      pivotCorrection = planarDelta.clone();
       console.log(
         `Re-centered the movement rig's pivot by (${planarDelta.x.toFixed(2)}, ${planarDelta.z.toFixed(2)}) ` +
         `to match the bear's actual visual center.`
@@ -391,19 +384,14 @@ function onModelLoaded(gltf) {
 
   console.log('Computed walkable bounds:', bounds, '| Bear spawn position:', playerRoot.position.clone());
 
-  // Always-visible status readout — check this on-screen instead of digging
-  // through DevTools when something seems wired up wrong.
-  const statusEl = document.getElementById('debug-status');
-  statusEl.classList.remove('hidden');
-  statusEl.textContent =
-    `Player root: ${chef ? `"${chef.name}" ✓` : 'NOT FOUND ✗ (placeholder)'}\n` +
-    `Animations: ${Object.keys(actions).length ? Object.keys(actions).join(', ') : '(none found)'}\n` +
-    `Floor: ${floor ? `"${floor.name}" ✓` : 'NOT FOUND ✗ (default bounds)'}\n` +
-    `Bounds: x[${bounds.minX.toFixed(2)}, ${bounds.maxX.toFixed(2)}]  z[${bounds.minZ.toFixed(2)}, ${bounds.maxZ.toFixed(2)}]\n` +
-    `Pivot correction: ${pivotCorrection ? `(${pivotCorrection.x.toFixed(2)}, ${pivotCorrection.z.toFixed(2)}) applied` : 'none needed'}\n` +
-    `Collision: ${colliders.length} box(es), bear radius ${bearCollisionRadius.toFixed(2)}m\n` +
-    `Light: ${importedLight ? `"${importedLight.name}" (${importedLight.type}) ✓` : 'not found (using fallback)'}\n` +
-    `Camera: ${importedCamera ? `"${importedCamera.name}" ✓` : 'not found (using computed framing)'}`;
+  console.log(
+    `Setup summary — Player root: ${chef ? `"${chef.name}" ✓` : 'NOT FOUND ✗ (placeholder)'} | ` +
+    `Animations: ${Object.keys(actions).length ? Object.keys(actions).join(', ') : '(none found)'} | ` +
+    `Floor: ${floor ? `"${floor.name}" ✓` : 'NOT FOUND ✗ (default bounds)'} | ` +
+    `Collision: ${colliders.length} box(es), bear radius ${bearCollisionRadius.toFixed(2)}m | ` +
+    `Light: ${importedLight ? `"${importedLight.name}" (${importedLight.type}) ✓` : 'not found (using fallback)'} | ` +
+    `Camera: ${importedCamera ? `"${importedCamera.name}" ✓` : 'not found (using computed framing)'}`
+  );
 
   // Snap straight to the intended framing instead of slowly lerping in from
   // the hardcoded startup position — this is the very first thing a visitor
@@ -487,9 +475,6 @@ function updateCamera() {
 
 // ---------------------------------------------------------------------------
 // Render loop
-// ---------------------------------------------------------------------------
-const liveStatusEl = document.getElementById('debug-live');
-
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1);
@@ -508,31 +493,6 @@ function animate() {
   updateCamera();
   if (interactionManager) {
     interactionManager.update();
-  }
-
-  if (playerController) {
-    liveStatusEl.classList.remove('hidden');
-    const p = playerController.root.position;
-    const heldKeys = [...playerController.keys].join(', ') || '(none)';
-    const currentClip = playerController.currentAction?.getClip().name ?? '(none)';
-
-    let interactionLine = 'interaction: (no targets registered)';
-    const dn = interactionManager?.debugNearest;
-    if (dn) {
-      const distOk = dn.dist <= dn.radius;
-      const dotOk = dn.dot === null || dn.dot >= 0.35;
-      interactionLine =
-        `nearest: "${dn.name}"  dist=${dn.dist.toFixed(2)}/${dn.radius.toFixed(2)}${distOk ? ' ✓' : ' ✗ TOO FAR'}  ` +
-        `facingDot=${dn.dot === null ? 'n/a' : dn.dot.toFixed(2)}${dotOk ? ' ✓' : ' ✗ NOT FACING'}`;
-    }
-
-    liveStatusEl.textContent =
-      `LIVE — watch these while pressing WASD:\n` +
-      `bear position: x=${p.x.toFixed(2)}  z=${p.z.toFixed(2)}\n` +
-      `keys held: ${heldKeys}\n` +
-      `shift (run): ${playerController.shiftHeld}\n` +
-      `current clip: ${currentClip}\n` +
-      interactionLine;
   }
 
   renderer.render(scene, camera);
