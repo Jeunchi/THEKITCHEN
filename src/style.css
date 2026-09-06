@@ -115,6 +115,7 @@ html, body {
   display: block;
   width: 100%;
   height: auto;
+  transition: opacity 0.15s ease;
 }
 .sign-hover, .sign-onclick {
   position: absolute;
@@ -122,7 +123,6 @@ html, body {
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.1s ease;
 }
 #prompt-sign:hover .sign-normal { opacity: 0; }
 #prompt-sign:hover .sign-hover { opacity: 1; }
@@ -166,8 +166,8 @@ html, body {
   background: none;
   cursor: pointer;
 }
-#panel-close img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-#panel-close .exit-hover, #panel-close .exit-onclick { opacity: 0; transition: opacity 0.1s ease; }
+#panel-close img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.15s ease; }
+#panel-close .exit-hover, #panel-close .exit-onclick { opacity: 0; }
 #panel-close:hover .exit-normal { opacity: 0; }
 #panel-close:hover .exit-hover { opacity: 1; }
 #panel-close:active .exit-hover { opacity: 0; }
@@ -220,14 +220,13 @@ html, body {
   transition: transform 0.15s ease;
 }
 .nav-btn:active { transform: scale(0.97); }
-.nav-img { display: block; width: 100%; height: auto; }
+.nav-img { display: block; width: 100%; height: auto; transition: opacity 0.15s ease; }
 .nav-hover, .nav-onclick {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.1s ease;
 }
 .nav-btn:hover .nav-normal { opacity: 0; }
 .nav-btn:hover .nav-hover { opacity: 1; }

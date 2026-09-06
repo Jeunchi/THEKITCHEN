@@ -104,8 +104,6 @@ export const interactiveContent = {
       <p>+971 54 146 4159</p>
       <p>
         <a href="https://github.com/Jeunchi" target="_blank" rel="noopener">GitHub</a>
-        &nbsp;·&nbsp;
-        <a href="https://www.linkedin.com/in/charles-junjie-mempin-700480226/" target="_blank" rel="noopener">LinkedIn</a>
       </p>
     `,
   },
@@ -119,31 +117,31 @@ export const interactiveContent = {
   // --------------------------------------------------------------------
 
   Strawberry: {
-    eyebrow: 'Placeholder',
+    eyebrow: 'Strawberry',
     title: 'Strawberry',
     radius: 3.0,
-    html: `<p>Put whatever you want here — a hobby, a fun fact, anything.</p>`,
+    html: `<p>This is a strawberry, just a normal strawberry, nothing to see here.</p>`,
   },
 
   Mango: {
-    eyebrow: 'Placeholder',
+    eyebrow: 'Mango',
     title: 'Mango',
     radius: 3.0,
-    html: `<p>Put whatever you want here — a hobby, a fun fact, anything.</p>`,
+    html: `<p>This is a mango, just a normal mango, nothing to see here.</p>`,
   },
 
   Ham: {
-    eyebrow: 'Placeholder',
+    eyebrow: 'Ham',
     title: 'Ham',
     radius: 3.0,
-    html: `<p>Put whatever you want here.</p>`,
+    html: `<p>This is a ham, just a normal ham, nothing to see here.</p>`,
   },
 
   'Chicken drumstick': {
-    eyebrow: 'Placeholder',
+    eyebrow: 'Chicken Drumstick',
     title: 'Chicken Drumstick',
     radius: 3.0,
-    html: `<p>Put whatever you want here.</p>`,
+    html: `<p>This is a chicken drumstick, just a normal chicken drumstick, nothing to see here.</p>`,
   },
 
   Fork: {
@@ -159,10 +157,10 @@ export const interactiveContent = {
   },
 
   Spoon: {
-    eyebrow: 'Placeholder',
+    eyebrow: 'Spoon',
     title: 'Spoon',
     radius: 3.0,
-    html: `<p>Put whatever you want here.</p>`,
+    html: `<p>This is a spoon, just a normal spoon, nothing to see here.</p>`,
   },
 };
 
