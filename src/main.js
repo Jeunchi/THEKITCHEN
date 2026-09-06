@@ -115,6 +115,15 @@ let autoWalk = null;
 const clock = new THREE.Clock();
 initControlsLegend();
 
+// Welcome modal — shown once after loading finishes (see loaderEl.classList.add
+// below). While it's open, WASD/auto-walk movement is paused (see animate())
+// so the bear doesn't wander off behind the dialog while someone's reading it.
+let isWelcomeOpen = true;
+document.getElementById('welcome-close').addEventListener('click', () => {
+  document.getElementById('welcome').classList.add('hidden');
+  isWelcomeOpen = false;
+});
+
 gltfLoader.load(
   MODEL_URL,
   (gltf) => onModelLoaded(gltf),
@@ -403,6 +412,7 @@ function onModelLoaded(gltf) {
   playerController.joystickVector = joystickVec;
 
   loaderEl.classList.add('hidden');
+  document.getElementById('welcome').classList.remove('hidden');
   animate();
 }
 
@@ -480,14 +490,18 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.1);
 
   if (playerController) {
-    const wasAutoWalking = autoWalk?.active ?? false;
-    const droveByAutoWalk = autoWalk ? autoWalk.update(dt) : false;
-    if (wasAutoWalking && !autoWalk.active) {
-      // Finished, arrived, or cancelled by manual input this frame — clear the button highlight either way.
-      document.querySelectorAll('.nav-btn.walking').forEach((b) => b.classList.remove('walking'));
-    }
-    if (!droveByAutoWalk) {
-      playerController.update(dt, yaw);
+    if (isWelcomeOpen) {
+      playerController.idleTick(dt);
+    } else {
+      const wasAutoWalking = autoWalk?.active ?? false;
+      const droveByAutoWalk = autoWalk ? autoWalk.update(dt) : false;
+      if (wasAutoWalking && !autoWalk.active) {
+        // Finished, arrived, or cancelled by manual input this frame — clear the button highlight either way.
+        document.querySelectorAll('.nav-btn.walking').forEach((b) => b.classList.remove('walking'));
+      }
+      if (!droveByAutoWalk) {
+        playerController.update(dt, yaw);
+      }
     }
   }
   updateCamera();

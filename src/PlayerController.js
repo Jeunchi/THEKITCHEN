@@ -182,6 +182,16 @@ export class PlayerController {
   }
 
   /**
+   * Keeps the idle animation and mixer ticking without reading any input at
+   * all. Used while the welcome modal is open, so the bear doesn't freeze
+   * mid-pose, but also can't be walked around behind the dialog.
+   */
+  idleTick(dt) {
+    this._setAction(this._findAction('idle'));
+    this.mixer.update(dt);
+  }
+
+  /**
    * Scripted movement toward a world-space direction (already normalized or
    * not — _applyMovement normalizes it). Used by AutoWalk. Always walks (no
    * running) for a calm, predictable "walking to destination" feel.

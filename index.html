@@ -82,6 +82,45 @@
       </button>
     </nav>
 
+    <!-- Welcome modal — shown once, right after loading finishes -->
+    <div id="welcome" class="hidden">
+      <div id="welcome-card">
+        <div id="welcome-eyebrow"></div>
+        <h2 id="welcome-title">Welcome to the Kitchen!</h2>
+        <p class="welcome-p">
+          Hi, I'm the cook — walk me around and poke at things to learn
+          about Charles.
+        </p>
+
+        <div class="welcome-section-title">How to move</div>
+        <div class="control-row">
+          <span class="control-icons">
+            <img src="/ui/w-button.png" alt="W">
+            <img src="/ui/a-button.png" alt="A">
+            <img src="/ui/s-button.png" alt="S">
+            <img src="/ui/d-button.png" alt="D">
+          </span>
+          <span class="control-label">Move around</span>
+        </div>
+        <div class="control-row">
+          <span class="control-icons"><img src="/ui/shift-button.png" alt="Shift" class="control-icon-wide"></span>
+          <span class="control-label">Hold to run</span>
+        </div>
+        <div class="control-row">
+          <span class="control-icons"><img src="/ui/e-button.png" alt="E"></span>
+          <span class="control-label">Interact when something's glowing</span>
+        </div>
+
+        <div class="welcome-section-title">Quick navigation</div>
+        <p class="welcome-p">
+          In a hurry? The buttons in the top-right (Introduction, Education,
+          Projects, Contact Me) send the bear walking straight there on its own.
+        </p>
+
+        <button id="welcome-close">Let's Cook!</button>
+      </div>
+    </div>
+
     <!-- HUD: proximity prompt — either a plain text bubble, or (for objects
          with a signImage set in content.js) a clickable custom banner with
          its own hover/press states. Clicking it does the same thing as E. -->

@@ -198,6 +198,107 @@ html, body {
 #panel-body ul { padding-left: 1.1rem; margin: 0 0 0.9rem; }
 #panel-body li { margin-bottom: 0.4rem; }
 
+/* ---------- Welcome modal ---------- */
+#welcome {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 15, 12, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 45; /* above the info panel's own z-index, so it always shows on top when both could exist */
+  transition: opacity 0.3s ease;
+}
+#welcome.hidden { opacity: 0; pointer-events: none; }
+
+#welcome-card {
+  width: min(480px, 88vw);
+  max-height: 84vh;
+  overflow-y: auto;
+  background: var(--panel-bg);
+  border-radius: var(--radius);
+  border-top: 5px solid var(--tomato);
+  padding: 2rem 2rem 1.8rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+#welcome-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--sage);
+  letter-spacing: 0.03em;
+  margin-bottom: 0.8rem;
+}
+#welcome-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin: 0 0 1.1rem;
+  color: var(--ink);
+}
+.welcome-p {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #4a3f38;
+  margin: 0 0 1rem;
+}
+.welcome-section-title {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--tomato);
+  letter-spacing: 0.03em;
+  text-align: left;
+  margin: 1.3rem 0 0.7rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed rgba(42, 31, 26, 0.15);
+}
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.6rem;
+  text-align: left;
+}
+.control-icons {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  width: 108px; /* fixed so labels line up regardless of how many icons a row has */
+}
+.control-icons img { width: 26px; height: 26px; object-fit: contain; }
+.control-icons img.control-icon-wide { width: 56px; }
+.control-label {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: #4a3f38;
+}
+
+#welcome-close {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  color: var(--cream);
+  background: var(--tomato);
+  border: none;
+  border-radius: 8px;
+  padding: 0.85rem 1.6rem;
+  margin-top: 1.4rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+#welcome-close:hover { filter: brightness(1.1); }
+#welcome-close:active { transform: scale(0.97); }
+
+@media (max-width: 480px) {
+  #welcome-card { padding: 1.6rem 1.4rem 1.5rem; }
+  .control-icons { width: 92px; }
+  .control-icons img { width: 22px; height: 22px; }
+  .control-icons img.control-icon-wide { width: 46px; }
+}
+
 /* ---------- Auto-walk navigation menu ---------- */
 #nav-menu {
   position: absolute;
