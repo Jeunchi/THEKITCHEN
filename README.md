@@ -1,136 +1,188 @@
-# Chef's Kitchen — 3D Portfolio Starter
+# Chef's Kitchen — 3D Portfolio
 
-A Three.js starter built around your Blender kitchen scene: an interactive
-bear (CHEF) you move with WASD, and objects around the kitchen (fridge, stove,
-counter, faucet...) that open info panels for About / Projects / Education /
-Contact.
+An interactive Three.js portfolio built around a Blender kitchen scene. A
+bear chef you control (or send on auto-walk) wanders the kitchen; walking up
+to and facing an appliance highlights it and lets you open an info panel —
+About, Education, Projects, and Contact are told through the fridge,
+microwave, gas range, and trash can, plus a few extra props for skills and
+fun asides.
 
-This is a working scaffold with placeholder copy — the code runs, but you
-need to (1) drop in your exported model and (2) edit the real content.
-
----
-
-## 1. Export your model from Blender
-
-1. **Apply all transforms first.** Select every object → `Ctrl+A` → *All
-   Transforms*. Skipping this is the #1 cause of "my model is squished/rotated
-   in Three.js."
-2. **Check your armature's actions are named clearly.** Open the Action
-   Editor / NLA for the CHEF ANIMATIONS armature. Whatever you named the
-   actions (e.g. `Walk`, `Idle`) is what shows up as `clip.name` in Three.js.
-   `PlayerController.js` looks for a clip name containing `"walk"` and one
-   containing `"idle"` (case-insensitive) — rename your actions to include
-   those words, or edit `_findAction()` calls in `PlayerController.js` to
-   match your actual names.
-3. **File → Export → glTF 2.0 (.glb/.gltf)**
-   - Format: **glTF Binary (.glb)** — everything in one file, easiest to host.
-   - Under *Include*: check **Animations**, **Custom Properties** (optional),
-     and make sure *Selected Objects Only* is **unchecked** so the whole
-     scene comes with you.
-   - Under *Transform*: `+Y Up` should be checked (Blender is Z-up, three.js
-     is Y-up — this setting handles the conversion).
-   - Under *Geometry*: enable **Apply Modifiers** if you have any.
-   - Under *Compression*: turning on Draco compression will make the file
-     much smaller for the web; this project's loader already has a
-     `DRACOLoader` configured to decode it.
-4. Name the exported file `kitchen.glb` and put it at:
-   ```
-   public/models/kitchen.glb
-   ```
-   (If you want a different name, update `MODEL_URL` at the top of
-   `src/main.js`.)
-
-**Important — names carry over.** Your outliner already has clean collection
-names (`CHEF`, `GAS RANGE`, `FRIDGE`, `Counter`, `Faucet`, etc.). glTF export
-keeps these as the `name` property on the corresponding Object3D/Group nodes,
-which is exactly how the code below finds them — via
-`scene.getObjectByName('FRIDGE')`. Don't rename things in Blender after
-you've wired up `content.js`, or the lookups will silently fail (you'll see a
-console warning telling you which name wasn't found).
+Live at: **jjesque-kitchen.vercel.app**
 
 ---
 
-## 2. Run it locally
+## Features
+
+- **Character control** — WASD to move, hold **Shift** to run, mouse drag to
+  orbit the camera, scroll to zoom.
+- **Collision** — the bear can't walk through the fridge, cabinets, counters,
+  or trash can; wall-sliding when approaching at an angle.
+- **Proximity interaction** — objects glow when the bear is close **and**
+  facing them; press **E** (or click the popup banner) to open that
+  object's info panel.
+- **Auto-walk navigation** — the four buttons in the top-right (Introduction /
+  Education / Projects / Contact Me) path the bear there automatically,
+  following the room's walkable perimeter and turning to face the object on
+  arrival. Manually pressing a movement key cancels an in-progress walk.
+- **Custom UI skin** — every button (movement keys, exit, nav buttons,
+  proximity popups) uses hand-made pixel-art assets with normal/hover/onclick
+  states, a pixel-font type system (Press Start 2P / Pixelify Sans), and a
+  bear-face favicon.
+- **Welcome modal** — a one-time onboarding popup explaining controls, shown
+  after the loading screen finishes.
+- **Mobile support** — on-screen joystick + interact button replace the
+  keyboard legend automatically on touch devices.
+
+---
+
+## Running locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the printed local URL. You should see the loading bar, then the kitchen
-with the bear in it. WASD/arrows to move, drag the mouse to orbit the camera,
-E (or click an object) to open its info panel.
+Open the printed local URL. You'll see the loading bar, then the kitchen
+with the bear in it, then the welcome modal.
 
-If the bear doesn't animate, or an object doesn't open a panel, check the
-browser console — both `main.js` and `InteractionManager.js` log clear
-warnings naming exactly what wasn't found.
-
----
-
-## 3. Customize the content
-
-Open `src/content.js`. Each entry is keyed by an object name from your scene:
-
-```js
-FRIDGE: {
-  eyebrow: 'About',
-  title: "Hey, I'm Your Name",
-  radius: 2.2,       // how close the bear needs to be, in meters, to trigger it
-  html: `<p>Your real bio here.</p>`,
-},
-```
-
-- `radius` — increase it for big objects (counters), decrease for small ones.
-- `html` — anything you'd put inside a `<div>`: paragraphs, links, lists.
-- To wire up a *new* interactive object (say, the Pot for a specific project
-  write-up), add a new key matching its exact Blender name — no other code
-  changes needed, `InteractionManager` picks up everything in `content.js`
-  automatically.
-
-To change movement feel, tweak `MOVE_SPEED` / `TURN_SPEED` at the top of
-`src/PlayerController.js`. To change camera distance/height, edit
-`camDistance` and the initial `pitch` in `src/main.js`.
-
----
-
-## 4. Deploy: GitHub → Vercel
-
-**Push to GitHub**
-```bash
-git init
-git add .
-git commit -m "Initial 3D portfolio"
-git branch -M main
-git remote add origin https://github.com/<you>/<repo>.git
-git push -u origin main
-```
-(Create the empty repo on GitHub first via the "New repository" button, then
-copy its URL into the command above.)
-
-**Deploy on Vercel**
-1. Go to vercel.com → **Add New... → Project** → import your GitHub repo.
-2. Vercel auto-detects Vite. Defaults are correct:
-   - Build command: `vite build`
-   - Output directory: `dist`
-3. Click **Deploy**. Every future `git push` to `main` auto-redeploys.
-
-**A note on file size:** `.glb` files with textures can get large. Vercel's
-free tier is generous, but if your model is >50–100MB, consider:
-- Compressing textures (resize to 1–2K, convert to `.webp`/JPEG before baking into the glTF).
-- Using Draco compression on export (already supported by the loader here).
-- Running `gltf-transform` (a CLI tool) to further optimize the .glb post-export.
+If something looks wired up wrong (an object doesn't highlight, the bear
+doesn't move, etc.), open the browser console — `main.js`,
+`InteractionManager.js`, and `Colliders.js` all log clear warnings naming
+exactly what wasn't found by name.
 
 ---
 
 ## Project structure
 
 ```
-public/models/kitchen.glb   ← your exported Blender scene (you add this)
-src/main.js                 ← scene, camera, loading, render loop
-src/PlayerController.js     ← WASD movement + animation blending for the bear
-src/InteractionManager.js   ← proximity detection, click detection, panel UI
+public/models/kitchen.glb   ← the exported Blender scene (not committed if it's large — see below)
+public/ui/                  ← all pixel-art UI assets (see naming convention below)
+
+src/main.js                 ← scene, camera rig, lighting, loading, render loop
+src/PlayerController.js     ← WASD/Shift movement, collision-aware translation, animation blending
+src/AutoWalk.js             ← nav-button pathfinding (ring-perimeter routing around the room)
+src/Colliders.js            ← builds obstacle bounding boxes; circle-vs-box overlap test
+src/InteractionManager.js   ← proximity + facing detection, highlight, panel UI, signage popup
+src/ControlsLegend.js       ← live key-press highlighting for the on-screen legend
 src/TouchJoystick.js        ← mobile on-screen joystick
-src/content.js              ← EDIT THIS — your actual bio/projects/education/contact text
-src/style.css               ← UI design system (loading screen, panel, HUD)
-index.html                  ← DOM shell for the canvas + UI overlay
+src/nameMatch.js            ← shared Blender-object-name matching (handles space/underscore/grouping quirks)
+src/content.js              ← EDIT THIS — all panel copy, links, and per-object settings
+src/style.css               ← the entire UI design system
+index.html                  ← DOM shell (canvas + every UI overlay)
 ```
+
+---
+
+## How the pieces fit together
+
+### The model (`public/models/kitchen.glb`)
+
+Exported from Blender as a single glTF Binary file. A few names matter
+because the code looks objects up by name:
+
+- **`Bear`** — the player character (`PLAYER_ROOT_NAME` in `main.js`).
+  Animation clips are found by substring match on `"walk"`, `"run"`, `"idle"`
+  (case-insensitive), so name your Blender actions accordingly.
+- **`Floor`** — used to compute walkable bounds and the camera's orbit
+  center. Without it, both fall back to hardcoded defaults.
+- Everything else is looked up via `content.js` / `Colliders.js` — see below.
+
+Object-name matching (`nameMatch.js`) tolerates two things Blender's exporter
+commonly introduces: spaces becoming underscores (`GAS RANGE` ↔ `GAS_RANGE`),
+and grouped pieces suffixed `-01`, `-02`, etc. (`Counter-01`, `Counter-02`, ...
+all match the key `"Counter"`).
+
+### Interactive objects (`src/content.js`)
+
+Each entry is keyed by an object name (or name prefix) from the scene:
+
+```js
+FRIDGE: {
+  eyebrow: 'About',
+  title: "Hey, I'm Charles",
+  radius: 4.0,                    // how close (+ roughly facing) triggers it
+  signImage: '/ui/sign-fridge.png', // optional: custom banner instead of plain text prompt
+  html: `<p>...</p>`,
+},
+```
+
+- `radius` is checked against the bear's actual collision size — if it's set
+  too small relative to how close the bear can physically get (it can't
+  overlap solid colliders), the object becomes unreachable. The live console
+  warnings will tell you if an object's colliders/name aren't found at all.
+- `signImage` is optional. If set, three files must exist following the
+  naming convention below (`base.png`, `base-hover.png`, `base-onclick.png`);
+  omit it and the object just uses the default text prompt.
+- To wire up a **new** interactive object, add a new key matching its exact
+  (or prefixed) Blender name — no other code changes needed.
+- `Counter` is intentionally **not** in `content.js` — it's still a solid
+  collider (`Colliders.js`) but was deliberately made non-interactive.
+
+### Collision (`src/Colliders.js`)
+
+`colliderObjectNames` lists which objects block the bear: `FRIDGE`,
+`GAS_RANGE`, `Counter`, `Cabinet`, `Countertop`, `Trash`, `Exhaust`. Small
+props sitting on top of a counter (fruit, utensils, the microwave) don't need
+their own entry — the counter beneath them already blocks that footprint.
+The bear's own collision radius is auto-measured from its model size at
+load time, shrunk slightly (`* 0.85`) so it can still get close enough to
+trigger interactions.
+
+### Auto-walk (`src/AutoWalk.js`)
+
+`autoWalkDestinations` maps each nav button to a target `{x, z}` position
+and (where needed) a `finalFacing` override for objects rotated the "wrong"
+way. Routing treats the room as a rectangular ring around the central
+island counter — it projects the bear's current position and the
+destination onto that ring, walks the shorter direction around it, and
+takes one final straight step off the ring into the object. **If you move
+furniture around in Blender, these hardcoded coordinates will need
+updating** — they don't derive from the model automatically.
+
+### UI assets (`public/ui/`)
+
+Every interactive button follows the same 3-state naming convention:
+`name.png` (default), `name-hover.png` (mouse hover), `name-onclick.png`
+(pressed/active). `InteractionManager.js` derives the hover/onclick paths
+from a `signImage` base path automatically by this convention — you don't
+need to reference all three in `content.js`.
+
+---
+
+## Customizing
+
+- **Movement feel** — `MOVE_SPEED` / `RUN_SPEED` / `TURN_SPEED` at the top of
+  `PlayerController.js`.
+- **Camera** — `camDistance`, `pitch`, `yaw`, and the scroll-zoom clamp
+  (`CAM_MIN_DIST` / `CAM_MAX_DIST`) in `main.js`, in the camera rig section.
+- **Content** — everything visitor-facing lives in `content.js`. It's plain
+  HTML strings inside template literals, so links, lists, and formatting all
+  work as expected.
+- **Lighting** — `main.js` looks for a light and camera exported from
+  Blender (`KHR_lights_punctual` — check "Punctual Lights" under the glTF
+  export panel's Lighting section to include yours) and falls back to a
+  built-in hemisphere + directional light if none is found.
+
+---
+
+## Deploy: GitHub → Vercel
+
+**Push to GitHub**
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/<you>/<repo>.git
+git push -u origin main
+```
+
+**Deploy on Vercel**
+1. vercel.com → **Add New... → Project** → import the GitHub repo.
+2. Vercel auto-detects Vite — defaults are correct (`vite build`, output `dist`).
+3. Deploy. Every future `git push` to `main` auto-redeploys.
+
+**On `.glb` file size:** if `kitchen.glb` is large (many textures), consider
+Draco compression on export (the loader already decodes it) and/or resizing
+textures to 1–2K before baking them into the glTF. Vercel's free tier is
+generous, but very large assets slow down first load for visitors.
