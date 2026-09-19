@@ -4,9 +4,8 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { PlayerController } from './PlayerController.js';
 import { InteractionManager } from './InteractionManager.js';
-import { TouchJoystick } from './TouchJoystick.js';
+import { initControlsLegend, enableLegendTouchControls } from './ControlsLegend.js';
 import { buildColliders } from './Colliders.js';
-import { initControlsLegend } from './ControlsLegend.js';
 import { AutoWalkController } from './AutoWalk.js';
 
 // ---------------------------------------------------------------------------
@@ -122,6 +121,16 @@ let isWelcomeOpen = true;
 document.getElementById('welcome-close').addEventListener('click', () => {
   document.getElementById('welcome').classList.add('hidden');
   isWelcomeOpen = false;
+});
+
+// Auto-walk nav menu — collapses into a dropdown below the mobile breakpoint
+// (see the media query in style.css). #nav-toggle is hidden entirely above
+// that breakpoint, so this listener is inert on desktop.
+const navMenuEl = document.getElementById('nav-menu');
+const navToggleEl = document.getElementById('nav-toggle');
+navToggleEl.addEventListener('click', () => {
+  const isOpen = navMenuEl.classList.toggle('open');
+  navToggleEl.setAttribute('aria-expanded', String(isOpen));
 });
 
 gltfLoader.load(
@@ -373,6 +382,9 @@ function onModelLoaded(gltf) {
       autoWalk.goTo(btn.dataset.destination);
       document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('walking'));
       btn.classList.add('walking');
+      // Harmless on desktop (the class has no effect there) — closes the dropdown on mobile.
+      navMenuEl.classList.remove('open');
+      navToggleEl.setAttribute('aria-expanded', 'false');
     });
   });
 
@@ -407,9 +419,9 @@ function onModelLoaded(gltf) {
   // sees, so it should be right on the first rendered frame.
   snapCameraTo();
 
-  const joystickVec = new THREE.Vector2();
-  new TouchJoystick(joystickVec);
-  playerController.joystickVector = joystickVec;
+  // The legend (WASD/Shift/E icons, bottom-left) doubles as the touch
+  // control scheme now — no separate joystick UI needed.
+  enableLegendTouchControls(playerController, interactionManager);
 
   loaderEl.classList.add('hidden');
   document.getElementById('welcome').classList.remove('hidden');
@@ -445,7 +457,7 @@ canvas.addEventListener('mousedown', (e) => onDragStart(e.clientX, e.clientY));
 window.addEventListener('mousemove', (e) => onDragMove(e.clientX, e.clientY));
 window.addEventListener('mouseup', onDragEnd);
 canvas.addEventListener('touchstart', (e) => {
-  if (e.target.closest('#joystick-base') || e.target.closest('#touch-interact')) return;
+  if (e.target.closest('#controls-legend') || e.target.closest('#nav-menu') || e.target.closest('#nav-toggle')) return;
   onDragStart(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: true });
 window.addEventListener('touchmove', (e) => onDragMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });

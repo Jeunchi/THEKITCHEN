@@ -58,7 +58,11 @@
       </div>
     </div>
 
-    <!-- Auto-walk navigation — click a destination and the bear walks there -->
+    <!-- Auto-walk navigation — click a destination and the bear walks there.
+         On small screens, #nav-toggle shows/hides #nav-menu as a dropdown
+         (see the mobile media query in style.css); on desktop, #nav-toggle
+         is hidden and #nav-menu is always visible. -->
+    <button id="nav-toggle" aria-label="Navigation menu" aria-expanded="false">Menu</button>
     <nav id="nav-menu">
       <button class="nav-btn" data-destination="about" aria-label="Introduction">
         <img class="nav-img nav-normal" src="/ui/route-fridge.png" alt="">
@@ -85,10 +89,10 @@
     <!-- Welcome modal — shown once, right after loading finishes -->
     <div id="welcome" class="hidden">
       <div id="welcome-card">
-        <div id="welcome-eyebrow"></div>
+        <div id="welcome-eyebrow">Welcome</div>
         <h2 id="welcome-title">Welcome to the Kitchen!</h2>
         <p class="welcome-p">
-          Hi, I'm the cook — walk me around and poke at things to learn
+          Hi, I'm the bear chef — walk me around and poke at things to learn
           about Charles.
         </p>
 
@@ -147,14 +151,6 @@
         <h2 id="panel-title"></h2>
         <div id="panel-body"></div>
       </div>
-    </div>
-
-    <!-- Mobile touch controls -->
-    <div id="touch-controls" class="hidden">
-      <div id="joystick-base">
-        <div id="joystick-knob"></div>
-      </div>
-      <button id="touch-interact">Interact</button>
     </div>
 
     <div id="hint">Drag to look · Scroll to zoom</div>

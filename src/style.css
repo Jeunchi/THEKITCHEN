@@ -300,6 +300,22 @@ html, body {
 }
 
 /* ---------- Auto-walk navigation menu ---------- */
+#nav-toggle {
+  display: none; /* shown only below the mobile breakpoint */
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  z-index: 22;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--cream);
+  background: rgba(42, 31, 26, 0.85);
+  border: 1px solid rgba(242, 233, 220, 0.25);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+}
+
 #nav-menu {
   position: absolute;
   right: 1.4rem;
@@ -337,17 +353,40 @@ html, body {
 .nav-btn.walking .nav-normal, .nav-btn.walking .nav-hover { opacity: 0; }
 .nav-btn.walking .nav-onclick { opacity: 1; }
 
+/* Below the breakpoint, #nav-menu becomes a collapsible dropdown anchored
+   under #nav-toggle instead of always-visible buttons — there just isn't
+   room for four large banners stacked on a phone/tablet screen. */
 @media (max-width: 768px) {
+  #nav-toggle { display: block; }
+
   #nav-menu {
-    bottom: 1rem;
-    top: auto;
-    right: 0.6rem;
-    gap: 0.35rem;
+    top: 3.6rem;
+    right: 0.8rem;
+    left: auto;
+    background: rgba(20, 15, 12, 0.85);
+    border: 1px solid rgba(242, 233, 220, 0.18);
+    border-radius: 10px;
+    padding: 0.7rem;
+    gap: 0.5rem;
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
   }
-  .nav-btn { width: 120px; }
+  #nav-menu.open {
+    max-height: 70vh;
+    opacity: 1;
+    padding: 0.7rem;
+  }
+  .nav-btn { width: 130px; }
 }
 
 /* ---------- Controls legend ---------- */
+/* Doubles as the mobile control scheme (see ControlsLegend.js) — every icon
+   is a real pressable button via Pointer Events, not just a visual
+   indicator, so it stays visible and usable at every screen size. */
 #controls-legend {
   position: absolute;
   left: 1.4rem;
@@ -386,6 +425,10 @@ html, body {
   width: 42px;
   height: 42px;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  touch-action: none; /* stop the browser from scrolling/zooming on press-and-hold */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .key-icon--wide {
   width: 88px;
@@ -397,10 +440,19 @@ html, body {
   height: 100%;
   object-fit: contain;
   transition: opacity 0.05s linear;
+  pointer-events: none; /* let the pointer events land on .key-icon, not individual images */
 }
 .key-icon .key-active { opacity: 0; }
 .key-icon.active .key-normal { opacity: 0; }
 .key-icon.active .key-active { opacity: 1; }
+
+@media (max-width: 480px) {
+  /* Bigger touch targets on small screens, where this legend is the primary
+     control scheme rather than a keyboard reference. */
+  .key-icon { width: 52px; height: 52px; }
+  .key-icon--wide { width: 108px; }
+  #controls-legend { padding: 0.7rem 0.8rem 0.8rem; gap: 8px; }
+}
 
 /* ---------- Top hint ---------- */
 #hint {
@@ -413,49 +465,6 @@ html, body {
   z-index: 15;
 }
 
-/* ---------- Touch controls ---------- */
-#touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 25; }
-#touch-controls.hidden { display: none; }
-
-#joystick-base {
-  position: absolute;
-  left: 1.6rem;
-  bottom: 1.6rem;
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  background: rgba(242, 233, 220, 0.12);
-  border: 1px solid rgba(242, 233, 220, 0.25);
-  pointer-events: auto;
-  touch-action: none;
-}
-#joystick-knob {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 46px;
-  height: 46px;
-  margin: -23px 0 0 -23px;
-  border-radius: 50%;
-  background: var(--tomato);
-  opacity: 0.9;
-}
-#touch-interact {
-  position: absolute;
-  right: 1.8rem;
-  bottom: 2.2rem;
-  width: 74px;
-  height: 74px;
-  border-radius: 50%;
-  border: 1px solid rgba(242, 233, 220, 0.25);
-  background: rgba(193, 68, 14, 0.85);
-  color: var(--cream);
-  font-size: 0.75rem;
-  font-weight: 600;
-  pointer-events: auto;
-}
-
 @media (max-width: 768px) {
   #hint { display: none; }
-  #controls-legend { display: none; }
 }
