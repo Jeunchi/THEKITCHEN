@@ -19,13 +19,19 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh; /* falls back to the 100% above on browsers that don't support dvh */
   overflow: hidden;
   background: var(--ink);
   font-family: var(--font-body);
   color: var(--ink);
 }
 
-#app { position: relative; width: 100vw; height: 100vh; }
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* accounts for mobile browser chrome (address bar, etc.) — 100vh alone can extend below the visible area */
+}
 
 #scene {
   position: absolute;
@@ -461,12 +467,15 @@ html, body {
 #touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 25; }
 #touch-controls.hidden { display: none; }
 
+/* clamp(min, preferred, max): scales fluidly with the actual viewport width
+   instead of a single fixed pixel size, so this fits correctly on every
+   phone from a small SE-class screen up to a large tablet. */
 #joystick-base {
   position: absolute;
-  left: 1.6rem;
-  bottom: 1.6rem;
-  width: 110px;
-  height: 110px;
+  left: max(1.2rem, env(safe-area-inset-left, 0px) + 1rem);
+  bottom: max(1.2rem, env(safe-area-inset-bottom, 0px) + 1rem);
+  width: clamp(72px, 24vw, 112px);
+  height: clamp(72px, 24vw, 112px);
   border-radius: 50%;
   background: rgba(242, 233, 220, 0.12);
   border: 1px solid rgba(242, 233, 220, 0.25);
@@ -478,25 +487,25 @@ html, body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 46px;
-  height: 46px;
-  margin: -23px 0 0 -23px;
+  width: 42%;   /* proportional to the base, so it scales automatically with the clamp() above */
+  height: 42%;
+  margin: -21% 0 0 -21%;
   border-radius: 50%;
   background: var(--tomato);
   opacity: 0.9;
 }
 #touch-interact {
   position: absolute;
-  right: 1.8rem;
-  bottom: 2.2rem;
-  width: 74px;
-  height: 74px;
+  right: max(1.2rem, env(safe-area-inset-right, 0px) + 1rem);
+  bottom: max(1.6rem, env(safe-area-inset-bottom, 0px) + 1.4rem);
+  width: clamp(56px, 17vw, 76px);
+  height: clamp(56px, 17vw, 76px);
   border-radius: 50%;
   border: 1px solid rgba(242, 233, 220, 0.25);
   background: rgba(193, 68, 14, 0.85);
   color: var(--cream);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: clamp(0.62rem, 3vw, 0.75rem);
   font-weight: 600;
   pointer-events: auto;
 }
@@ -505,14 +514,14 @@ html, body {
    this — this rule just makes the intent explicit and gives us a place to
    tweak tablet-only spacing later without touching the phone rule). */
 @media (min-width: 481px) and (max-width: 768px) {
-  #joystick-base { left: 1.8rem; bottom: 2rem; }
+  #joystick-base { left: max(1.8rem, env(safe-area-inset-left, 0px) + 1.5rem); bottom: max(2rem, env(safe-area-inset-bottom, 0px) + 1.6rem); }
 }
 
 /* Phone range: joystick moves to bottom-center. */
 @media (max-width: 480px) {
   #joystick-base {
     left: 50%;
-    bottom: 1.4rem;
+    bottom: max(1.4rem, env(safe-area-inset-bottom, 0px) + 1.1rem);
     transform: translateX(-50%);
   }
 }

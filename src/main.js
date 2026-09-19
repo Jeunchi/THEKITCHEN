@@ -364,8 +364,8 @@ function onModelLoaded(gltf) {
     // camera back farther so the room still reads as a full scene rather
     // than a tight, cropped-looking view.
     const isPhoneWidth = window.innerWidth <= 480;
-    const phoneCamMultiplier = isPhoneWidth ? 1.35 : 1;
-    camDistance = THREE.MathUtils.clamp(diagonal * 0.65 * phoneCamMultiplier, 20, 46);
+    const phoneCamMultiplier = isPhoneWidth ? 2.4 : 1;
+    camDistance = THREE.MathUtils.clamp(diagonal * 0.65 * phoneCamMultiplier, 20, 75);
   } else {
     console.warn(
       'No object named "Floor" found — falling back to a default walkable area and ' +
@@ -404,7 +404,7 @@ function onModelLoaded(gltf) {
     const offset = new THREE.Vector3().subVectors(camWorldPos, cameraTarget);
     const dist = offset.length();
     if (dist > 0.01) {
-      camDistance = THREE.MathUtils.clamp(dist, 3, 40);
+      camDistance = THREE.MathUtils.clamp(dist, 3, 80);
       yaw = Math.atan2(offset.x, offset.z);
       pitch = THREE.MathUtils.clamp(Math.asin(THREE.MathUtils.clamp(offset.y / dist, -1, 1)), 0.05, 1.4);
     }
@@ -451,7 +451,7 @@ let lastX = 0;
 let lastY = 0;
 let camDistance = 6; // overwritten once the room's real size (or imported camera) is known
 const CAM_MIN_DIST = 10;
-const CAM_MAX_DIST = 47;
+const CAM_MAX_DIST = 80;
 
 function onDragStart(x, y) { isDragging = true; lastX = x; lastY = y; }
 function onDragMove(x, y) {
