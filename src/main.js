@@ -4,7 +4,8 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { PlayerController } from './PlayerController.js';
 import { InteractionManager } from './InteractionManager.js';
-import { initControlsLegend, enableLegendTouchControls } from './ControlsLegend.js';
+import { initControlsLegend } from './ControlsLegend.js';
+import { TouchJoystick } from './TouchJoystick.js';
 import { buildColliders } from './Colliders.js';
 import { AutoWalkController } from './AutoWalk.js';
 
@@ -358,7 +359,13 @@ function onModelLoaded(gltf) {
 
     // Size the starting camera distance to the room instead of a fixed guess.
     const diagonal = Math.hypot(size.x, size.z);
-    camDistance = THREE.MathUtils.clamp(diagonal * 0.65, 20, 38);
+    // On a phone-sized viewport, a narrow portrait aspect ratio shows much
+    // less width at a given distance than a desktop window does — pull the
+    // camera back farther so the room still reads as a full scene rather
+    // than a tight, cropped-looking view.
+    const isPhoneWidth = window.innerWidth <= 480;
+    const phoneCamMultiplier = isPhoneWidth ? 1.35 : 1;
+    camDistance = THREE.MathUtils.clamp(diagonal * 0.65 * phoneCamMultiplier, 20, 46);
   } else {
     console.warn(
       'No object named "Floor" found — falling back to a default walkable area and ' +
@@ -419,9 +426,11 @@ function onModelLoaded(gltf) {
   // sees, so it should be right on the first rendered frame.
   snapCameraTo();
 
-  // The legend (WASD/Shift/E icons, bottom-left) doubles as the touch
-  // control scheme now — no separate joystick UI needed.
-  enableLegendTouchControls(playerController, interactionManager);
+  // Joystick + interact button — the touch control scheme on phones/tablets
+  // (hidden entirely on non-touch devices; see TouchJoystick.js).
+  const joystickVec = new THREE.Vector2();
+  new TouchJoystick(joystickVec);
+  playerController.joystickVector = joystickVec;
 
   loaderEl.classList.add('hidden');
   document.getElementById('welcome').classList.remove('hidden');
@@ -457,7 +466,12 @@ canvas.addEventListener('mousedown', (e) => onDragStart(e.clientX, e.clientY));
 window.addEventListener('mousemove', (e) => onDragMove(e.clientX, e.clientY));
 window.addEventListener('mouseup', onDragEnd);
 canvas.addEventListener('touchstart', (e) => {
-  if (e.target.closest('#controls-legend') || e.target.closest('#nav-menu') || e.target.closest('#nav-toggle')) return;
+  if (
+    e.target.closest('#joystick-base') ||
+    e.target.closest('#touch-interact') ||
+    e.target.closest('#nav-menu') ||
+    e.target.closest('#nav-toggle')
+  ) return;
   onDragStart(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: true });
 window.addEventListener('touchmove', (e) => onDragMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });

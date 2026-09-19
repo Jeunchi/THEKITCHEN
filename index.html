@@ -154,6 +154,16 @@
     </div>
 
     <div id="hint">Drag to look · Scroll to zoom</div>
+
+    <!-- Mobile touch controls — joystick position responds to screen size
+         (see the media queries in style.css: bottom-center on phones,
+         bottom-left on tablets). Hidden entirely on non-touch devices. -->
+    <div id="touch-controls" class="hidden">
+      <div id="joystick-base">
+        <div id="joystick-knob"></div>
+      </div>
+      <button id="touch-interact">Interact</button>
+    </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

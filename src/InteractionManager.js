@@ -126,8 +126,11 @@ export class InteractionManager {
     });
 
     // The signage banner itself is clickable — same action as pressing E.
-    // (The legend's E icon handles the mobile/touch case — see ControlsLegend.js.)
     this.promptSignEl.addEventListener('click', () => this.tryOpenNearest());
+
+    // Mobile touch "Interact" button — also gated by proximity, never a raw click/tap on the object
+    const touchBtn = document.getElementById('touch-interact');
+    if (touchBtn) touchBtn.addEventListener('click', () => this.tryOpenNearest());
   }
 
   setCamera(camera) {

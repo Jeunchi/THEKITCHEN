@@ -446,14 +446,6 @@ html, body {
 .key-icon.active .key-normal { opacity: 0; }
 .key-icon.active .key-active { opacity: 1; }
 
-@media (max-width: 480px) {
-  /* Bigger touch targets on small screens, where this legend is the primary
-     control scheme rather than a keyboard reference. */
-  .key-icon { width: 52px; height: 52px; }
-  .key-icon--wide { width: 108px; }
-  #controls-legend { padding: 0.7rem 0.8rem 0.8rem; gap: 8px; }
-}
-
 /* ---------- Top hint ---------- */
 #hint {
   position: absolute;
@@ -465,6 +457,67 @@ html, body {
   z-index: 15;
 }
 
+/* ---------- Touch controls (joystick + interact) ---------- */
+#touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 25; }
+#touch-controls.hidden { display: none; }
+
+#joystick-base {
+  position: absolute;
+  left: 1.6rem;
+  bottom: 1.6rem;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(242, 233, 220, 0.12);
+  border: 1px solid rgba(242, 233, 220, 0.25);
+  pointer-events: auto;
+  touch-action: none;
+  transition: left 0.2s ease, bottom 0.2s ease, transform 0.2s ease;
+}
+#joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: var(--tomato);
+  opacity: 0.9;
+}
+#touch-interact {
+  position: absolute;
+  right: 1.8rem;
+  bottom: 2.2rem;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 233, 220, 0.25);
+  background: rgba(193, 68, 14, 0.85);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: auto;
+}
+
+/* Tablet range: joystick bottom-left (default position above already covers
+   this — this rule just makes the intent explicit and gives us a place to
+   tweak tablet-only spacing later without touching the phone rule). */
+@media (min-width: 481px) and (max-width: 768px) {
+  #joystick-base { left: 1.8rem; bottom: 2rem; }
+}
+
+/* Phone range: joystick moves to bottom-center. */
+@media (max-width: 480px) {
+  #joystick-base {
+    left: 50%;
+    bottom: 1.4rem;
+    transform: translateX(-50%);
+  }
+}
+
 @media (max-width: 768px) {
   #hint { display: none; }
+  #controls-legend { display: none; } /* the joystick + interact button is the control scheme here instead */
 }
