@@ -8,6 +8,12 @@ import { initControlsLegend } from './ControlsLegend.js';
 import { TouchJoystick } from './TouchJoystick.js';
 import { buildColliders } from './Colliders.js';
 import { AutoWalkController } from './AutoWalk.js';
+import { inject } from '@vercel/analytics';
+
+// ---------------------------------------------------------------------------
+// Vercel Web Analytics
+// ---------------------------------------------------------------------------
+inject();
 
 // ---------------------------------------------------------------------------
 // CONFIG — change this to match your exported filename
