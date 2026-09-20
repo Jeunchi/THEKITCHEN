@@ -14,6 +14,17 @@
 
 * { box-sizing: border-box; }
 
+/* Deterrent against casual copying of the custom UI art — see the
+   contextmenu/dragstart listeners in main.js for the other half of this.
+   -webkit-touch-callout specifically disables iOS Safari's long-press
+   "Save Image" popup, which the contextmenu event alone doesn't catch. */
+img, #scene {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -276,6 +287,43 @@ html, body {
 }
 .control-icons img { width: 26px; height: 26px; object-fit: contain; }
 .control-icons img.control-icon-wide { width: 56px; }
+
+/* Mini previews of the actual on-screen joystick/interact button, shown in
+   the welcome modal on touch devices instead of the keyboard icons. */
+.joystick-preview {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(74, 63, 56, 0.12);
+  border: 1px solid rgba(74, 63, 56, 0.3);
+}
+.joystick-preview-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--tomato);
+}
+.interact-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--tomato);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.5rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1;
+}
 .control-label {
   font-family: var(--font-body);
   font-size: 0.92rem;

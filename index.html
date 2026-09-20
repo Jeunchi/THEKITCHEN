@@ -97,22 +97,42 @@
         </p>
 
         <div class="welcome-section-title">How to move</div>
-        <div class="control-row">
-          <span class="control-icons">
-            <img src="/ui/w-button.png" alt="W">
-            <img src="/ui/a-button.png" alt="A">
-            <img src="/ui/s-button.png" alt="S">
-            <img src="/ui/d-button.png" alt="D">
-          </span>
-          <span class="control-label">Move around</span>
+
+        <!-- Shown on devices with a keyboard -->
+        <div id="welcome-controls-keyboard">
+          <div class="control-row">
+            <span class="control-icons">
+              <img src="/ui/w-button.png" alt="W">
+              <img src="/ui/a-button.png" alt="A">
+              <img src="/ui/s-button.png" alt="S">
+              <img src="/ui/d-button.png" alt="D">
+            </span>
+            <span class="control-label">Move around</span>
+          </div>
+          <div class="control-row">
+            <span class="control-icons"><img src="/ui/shift-button.png" alt="Shift" class="control-icon-wide"></span>
+            <span class="control-label">Hold to run</span>
+          </div>
+          <div class="control-row">
+            <span class="control-icons"><img src="/ui/e-button.png" alt="E"></span>
+            <span class="control-label">Interact when something's glowing</span>
+          </div>
         </div>
-        <div class="control-row">
-          <span class="control-icons"><img src="/ui/shift-button.png" alt="Shift" class="control-icon-wide"></span>
-          <span class="control-label">Hold to run</span>
-        </div>
-        <div class="control-row">
-          <span class="control-icons"><img src="/ui/e-button.png" alt="E"></span>
-          <span class="control-label">Interact when something's glowing</span>
+
+        <!-- Shown on phones/tablets instead — matches the on-screen joystick + button -->
+        <div id="welcome-controls-touch" class="hidden">
+          <div class="control-row">
+            <span class="control-icons">
+              <span class="joystick-preview"><span class="joystick-preview-knob"></span></span>
+            </span>
+            <span class="control-label">Drag the joystick to move</span>
+          </div>
+          <div class="control-row">
+            <span class="control-icons">
+              <span class="interact-preview">Interact</span>
+            </span>
+            <span class="control-label">Tap when something's glowing</span>
+          </div>
         </div>
 
         <div class="welcome-section-title">Quick navigation</div>

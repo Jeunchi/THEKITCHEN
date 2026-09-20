@@ -115,6 +115,20 @@ let autoWalk = null;
 const clock = new THREE.Clock();
 initControlsLegend();
 
+// Discourage casual copying of the custom pixel-art UI (right-click "save
+// image as" and mobile long-press). Only targets <img> elements and the 3D
+// canvas specifically, so right-click still works normally on links/text
+// inside info panels (e.g. "open in new tab" on a project link). This is a
+// deterrent against casual copying, not real DRM — anyone determined enough
+// to open DevTools can still get at the files, and that's an accepted
+// tradeoff for a client-side web app.
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.tagName === 'IMG' || e.target.id === 'scene') e.preventDefault();
+});
+document.addEventListener('dragstart', (e) => {
+  if (e.target.tagName === 'IMG') e.preventDefault();
+});
+
 // Welcome modal — shown once after loading finishes (see loaderEl.classList.add
 // below). While it's open, WASD/auto-walk movement is paused (see animate())
 // so the bear doesn't wander off behind the dialog while someone's reading it.
@@ -123,6 +137,14 @@ document.getElementById('welcome-close').addEventListener('click', () => {
   document.getElementById('welcome').classList.add('hidden');
   isWelcomeOpen = false;
 });
+
+// Show the joystick/interact explanation instead of keyboard icons on
+// touch devices, where there's no physical WASD/Shift/E to press.
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+if (isTouchDevice) {
+  document.getElementById('welcome-controls-keyboard').classList.add('hidden');
+  document.getElementById('welcome-controls-touch').classList.remove('hidden');
+}
 
 // Auto-walk nav menu — collapses into a dropdown below the mobile breakpoint
 // (see the media query in style.css). #nav-toggle is hidden entirely above
